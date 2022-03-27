@@ -1,3 +1,4 @@
 /target
 *.bak
 /src/*.bak
+/result-bin
