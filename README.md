@@ -15,7 +15,7 @@ nix run github:vlinkz/npkg -- --help
 ```
 
 ```
-npkg 0.0.1
+npkg 0.0.3
 
 USAGE:
     npkg [OPTIONS] [PACKAGES]...
@@ -24,15 +24,17 @@ ARGS:
     <PACKAGES>...    Packages
 
 OPTIONS:
-    -E, --env        Use nix environment 'nix-env'
-    -h, --help       Print help information
-    -H, --home       Use home-manager '~/.config/nixpkgs/home.nix'
-    -i, --install    Install a package
-    -l, --list       List installed packages
-    -r, --remove     Remove a package
-    -s, --search     Search for a package
-    -S, --system     Use system '/etc/nixos/configuration.nix'
-    -V, --version    Print version information
+    -d, --dry-run            Do not build any packages, only edit configuration file
+    -E, --env                Use nix environment 'nix-env'
+    -h, --help               Print help information
+    -H, --home               Use home-manager '~/.config/nixpkgs/home.nix'
+    -i, --install            Install a package
+    -l, --list               List installed packages
+    -o, --output <OUTPUT>    Output modified configuration file to a specified location
+    -r, --remove             Remove a package
+    -s, --search             Search for a package
+    -S, --system             Use system '/etc/nixos/configuration.nix'
+    -V, --version            Print version information
 ```
 
 # Use cases
@@ -49,7 +51,7 @@ By default, this will use `nix-env` and install the package in you current envir
     sudo npkg -iS hello
     ```
     will install the `hello` package as a system package by modifying your `/etc/nixos/configuration.nix` file and then calling `nixos-rebuild switch`.
-    
+
 -   ```
     npkg -iH hello
     ```

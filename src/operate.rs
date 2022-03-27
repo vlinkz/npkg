@@ -5,23 +5,63 @@ use std::{
 
 pub enum OperateError {
     CmdError,
+    WriteError(String),
 }
 
-pub fn hminstall(packages: Vec<String>, currpkgs: Vec<String>) -> Result<(), OperateError> {
+pub fn hminstall(
+    packages: Vec<String>,
+    currpkgs: Vec<String>,
+    output: Option<String>,
+    build: bool,
+) -> Result<(), OperateError> {
+    let mut b = build;
     let file = format!("{}/.config/nixpkgs/home.nix", env::var("HOME").unwrap());
-    match cfginstall(packages, currpkgs, &file, "home.packages", "home-manager") {
+    let outfile = match output {
+        Some(s) => {
+            b = false;
+            s
+        }
+        None => file.to_string(),
+    };
+    match cfginstall(
+        packages,
+        currpkgs,
+        &file,
+        &outfile,
+        "home.packages",
+        true,
+        "home-manager",
+        b,
+    ) {
         Ok(()) => Ok(()),
         Err(e) => Err(e),
     }
 }
 
-pub fn sysinstall(packages: Vec<String>, currpkgs: Vec<String>) -> Result<(), OperateError> {
+pub fn sysinstall(
+    packages: Vec<String>,
+    currpkgs: Vec<String>,
+    output: Option<String>,
+    build: bool,
+) -> Result<(), OperateError> {
+    let mut b = build;
+    let file = "/etc/nixos/configuration.nix".to_string();
+    let outfile = match output {
+        Some(s) => {
+            b = false;
+            s
+        }
+        None => file.to_string(),
+    };
     match cfginstall(
         packages,
         currpkgs,
-        "/etc/nixos/configuration.nix",
+        &file,
+        &outfile,
         "environment.systemPackages",
+        true,
         "nixos-rebuild",
+        b,
     ) {
         Ok(()) => Ok(()),
         Err(e) => Err(e),
@@ -52,21 +92,61 @@ pub fn envinstall(packages: Vec<String>, currpkgs: Vec<String>) -> Result<(), Op
     }
 }
 
-pub fn hmremove(packages: Vec<String>, currpkgs: Vec<String>) -> Result<(), OperateError> {
+pub fn hmremove(
+    packages: Vec<String>,
+    currpkgs: Vec<String>,
+    output: Option<String>,
+    build: bool,
+) -> Result<(), OperateError> {
     let file = format!("{}/.config/nixpkgs/home.nix", env::var("HOME").unwrap());
-    match cfgremove(packages, currpkgs, &file, "home.packages", "home-manager") {
+    let mut b = build;
+    let outfile = match output {
+        Some(s) => {
+            b = false;
+            s
+        }
+        None => file.to_string(),
+    };
+    match cfginstall(
+        packages,
+        currpkgs,
+        &file,
+        &outfile,
+        "home.packages",
+        false,
+        "home-manager",
+        b,
+    ) {
         Ok(()) => Ok(()),
         Err(e) => Err(e),
     }
 }
 
-pub fn sysremove(packages: Vec<String>, currpkgs: Vec<String>) -> Result<(), OperateError> {
-    match cfgremove(
+pub fn sysremove(
+    packages: Vec<String>,
+    currpkgs: Vec<String>,
+    output: Option<String>,
+    build: bool,
+) -> Result<(), OperateError> {
+    let mut b = build;
+    let file = "/etc/nixos/configuration.nix".to_string();
+    let outfile = match output {
+        Some(s) => {
+            b = false;
+            s
+        }
+        None => file.to_string(),
+    };
+
+    match cfginstall(
         packages,
         currpkgs,
-        "/etc/nixos/configuration.nix",
+        &file,
+        &outfile,
         "environment.systemPackages",
+        false,
         "nixos-rebuild",
+        b,
     ) {
         Ok(()) => Ok(()),
         Err(e) => Err(e),
@@ -101,8 +181,11 @@ fn cfginstall(
     packages: Vec<String>,
     currpkgs: Vec<String>,
     file: &str,
+    outfile: &str,
     query: &str,
+    installorrm: bool,
     cmd: &str,
+    build: bool,
 ) -> Result<(), OperateError> {
     let f = fs::read_to_string(file).expect("Failed to read file");
 
@@ -125,38 +208,60 @@ fn cfginstall(
     };
 
     if !pkgsset {
-        pkgs = pkgs.into_iter().map(|x| format!("pkgs.{}", x)).collect::<Vec<String>>();
+        pkgs = pkgs
+            .into_iter()
+            .map(|x| format!("pkgs.{}", x))
+            .collect::<Vec<String>>();
     }
 
-    let out = match nix_editor::write::addtoarr(&f, query, pkgs) {
-        Ok(x) => x,
-        Err(_) => exit(1),
+    let out = if installorrm {
+        match nix_editor::write::addtoarr(&f, query, pkgs) {
+            Ok(x) => x,
+            Err(_) => exit(1),
+        }
+    } else {
+        match nix_editor::write::rmarr(&f, query, pkgs) {
+            Ok(x) => x,
+            Err(_) => exit(1),
+        }
     };
 
-    fs::write(&file, &out).expect("Unable to write file");
+    match fs::write(&outfile, &out) {
+        Ok(_) => {},
+        Err(_) => {
+            let mut file = outfile.split("/").collect::<Vec<&str>>();
+            file.pop();
+            return Err(OperateError::WriteError(file.join("/")))
+        },
+    };
 
-    let status = Command::new(cmd)
-        .arg("switch")
-        //.arg("--option")
-        //.arg("substitute")
-        //.arg("false")
-        .status()
-        .expect(&format!("Failed to run {}", cmd));
+    if build {
+        let status = Command::new(cmd)
+            .arg("switch")
+            //.arg("--option")
+            //.arg("substitute")
+            //.arg("false")
+            .status()
+            .expect(&format!("Failed to run {}", cmd));
 
-    if !status.success() {
-        //printerror("Could not rebuild configuration");
-        fs::write(&file, f).expect("Unable to write file");
-        return Err(OperateError::CmdError);
+        if !status.success() {
+            //printerror("Could not rebuild configuration");
+            fs::write(&outfile, f).expect("Unable to write file");
+            return Err(OperateError::CmdError);
+        }
     }
+
     return Ok(());
 }
 
-fn cfgremove(
+/*fn cfgremove(
     packages: Vec<String>,
     currpkgs: Vec<String>,
     file: &str,
+    outfile: &str,
     query: &str,
     cmd: &str,
+    build: bool,
 ) -> Result<(), OperateError> {
     let f = fs::read_to_string(file).expect("Failed to read file");
 
@@ -178,19 +283,22 @@ fn cfgremove(
         Err(_) => exit(1),
     };
 
-    fs::write(&file, out).expect("Unable to write file");
+    fs::write(&outfile, out).expect("Unable to write file");
 
-    let status = Command::new(cmd)
-        .arg("switch")
-        //.arg("--option")
-        //.arg("substitute")
-        //.arg("false")
-        .status()
-        .expect(&format!("Failed to run {}", cmd));
+    if build {
+        let status = Command::new(cmd)
+            .arg("switch")
+            //.arg("--option")
+            //.arg("substitute")
+            //.arg("false")
+            .status()
+            .expect(&format!("Failed to run {}", cmd));
 
-    if !status.success() {
-        fs::write(&file, f).expect("Unable to write file");
-        return Err(OperateError::CmdError);
+        if !status.success() {
+            fs::write(&outfile, f).expect("Unable to write file");
+            return Err(OperateError::CmdError);
+        }
     }
+
     return Ok(());
-}
+}*/
