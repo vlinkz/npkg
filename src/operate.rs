@@ -23,7 +23,7 @@ pub fn hminstall(
         }
         None => file.to_string(),
     };
-    match cfginstall(
+    match cfgoperate(
         packages,
         currpkgs,
         &file,
@@ -53,7 +53,7 @@ pub fn sysinstall(
         }
         None => file.to_string(),
     };
-    match cfginstall(
+    match cfgoperate(
         packages,
         currpkgs,
         &file,
@@ -107,7 +107,7 @@ pub fn hmremove(
         }
         None => file.to_string(),
     };
-    match cfginstall(
+    match cfgoperate(
         packages,
         currpkgs,
         &file,
@@ -138,7 +138,7 @@ pub fn sysremove(
         None => file.to_string(),
     };
 
-    match cfginstall(
+    match cfgoperate(
         packages,
         currpkgs,
         &file,
@@ -177,7 +177,7 @@ pub fn envremove(packages: Vec<String>, currpkgs: Vec<String>) -> Result<(), Ope
     }
 }
 
-fn cfginstall(
+fn cfgoperate(
     packages: Vec<String>,
     currpkgs: Vec<String>,
     file: &str,
@@ -250,55 +250,5 @@ fn cfginstall(
             return Err(OperateError::CmdError);
         }
     }
-
     return Ok(());
 }
-
-/*fn cfgremove(
-    packages: Vec<String>,
-    currpkgs: Vec<String>,
-    file: &str,
-    outfile: &str,
-    query: &str,
-    cmd: &str,
-    build: bool,
-) -> Result<(), OperateError> {
-    let f = fs::read_to_string(file).expect("Failed to read file");
-
-    //Add check for current packages
-    let mut pkgs = vec![];
-    for p in packages {
-        if currpkgs.contains(&p) {
-            pkgs.push(p);
-        }
-    }
-
-    if pkgs.is_empty() {
-        println!("No installed packages to remove");
-        exit(0);
-    }
-
-    let out = match nix_editor::write::rmarr(&f, query, pkgs) {
-        Ok(x) => x,
-        Err(_) => exit(1),
-    };
-
-    fs::write(&outfile, out).expect("Unable to write file");
-
-    if build {
-        let status = Command::new(cmd)
-            .arg("switch")
-            //.arg("--option")
-            //.arg("substitute")
-            //.arg("false")
-            .status()
-            .expect(&format!("Failed to run {}", cmd));
-
-        if !status.success() {
-            fs::write(&outfile, f).expect("Unable to write file");
-            return Err(OperateError::CmdError);
-        }
-    }
-
-    return Ok(());
-}*/

@@ -99,9 +99,13 @@ fn checkcache() {
     if version != oldversion {
         println!("Out of date, updating cache");
         setupcache(version);
+        let mut newver = fs::File::create(format!("{}/version.json", &cachedir)).unwrap();
+        newver.write_all(&vout.stdout).unwrap();
     } else if !Path::is_file(Path::new(&format!("{}/packages.json", &cachedir))) {
         println!("No packages.json, updating cache");
         setupcache(version);
+        let mut newver = fs::File::create(format!("{}/version.json", &cachedir)).unwrap();
+        newver.write_all(&vout.stdout).unwrap();
     }
 }
 
