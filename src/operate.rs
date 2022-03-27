@@ -119,12 +119,21 @@ fn cfginstall(
         exit(0);
     }
 
+    let pkgsset = match nix_editor::read::getwithvalue(&f, query) {
+        Ok(s) => s.contains(&"pkgs".to_string()),
+        Err(_) => false,
+    };
+
+    if !pkgsset {
+        pkgs = pkgs.into_iter().map(|x| format!("pkgs.{}", x)).collect::<Vec<String>>();
+    }
+
     let out = match nix_editor::write::addtoarr(&f, query, pkgs) {
         Ok(x) => x,
         Err(_) => exit(1),
     };
 
-    fs::write(&file, out).expect("Unable to write file");
+    fs::write(&file, &out).expect("Unable to write file");
 
     let status = Command::new(cmd)
         .arg("switch")
@@ -180,7 +189,6 @@ fn cfgremove(
         .expect(&format!("Failed to run {}", cmd));
 
     if !status.success() {
-        //printerror("Could not rebuild configuration");
         fs::write(&file, f).expect("Unable to write file");
         return Err(OperateError::CmdError);
     }

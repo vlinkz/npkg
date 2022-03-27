@@ -46,13 +46,14 @@ npkg -i <PACKAGE>
 By default, this will use `nix-env` and install the package in you current environment. You can choose to use a specific available installer by using the `-S`, `-H`, or `-E` flags.
 
 -   ```
-    npkg -iH hello
-    ```
-    will install the `hello` package using [home-manager](https://github.com/nix-community/home-manager) if it is installed. It will modify `~/.config/nixpkgs/home.nix` and then call `home-manager switch`.
--   ```
     sudo npkg -iS hello
     ```
     will install the `hello` package as a system package by modifying your `/etc/nixos/configuration.nix` file and then calling `nixos-rebuild switch`.
+    
+-   ```
+    npkg -iH hello
+    ```
+    will install the `hello` package using [home-manager](https://github.com/nix-community/home-manager) if it is installed. It will modify `~/.config/nixpkgs/home.nix` and then call `home-manager switch`.
 
 -   ```
     sudo npkg -iE hello
