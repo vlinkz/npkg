@@ -2,3 +2,4 @@
 *.bak
 /src/*.bak
 /result-bin
+/result

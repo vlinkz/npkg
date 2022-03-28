@@ -2,6 +2,7 @@ use std::{
     env, fs,
     process::{exit, Command},
 };
+use crate::search::name_to_pname;
 
 pub enum OperateError {
     CmdError,
@@ -166,6 +167,8 @@ pub fn envremove(packages: Vec<String>, currpkgs: Vec<String>) -> Result<(), Ope
         println!("No packages to remove");
         exit(0);
     }
+
+    pkgs = name_to_pname(&pkgs);
 
     match Command::new("nix-env")
         .arg("-e")

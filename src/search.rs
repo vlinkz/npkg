@@ -1,4 +1,5 @@
 use crate::PkgData;
+use bimap;
 use brotli;
 use curl::easy::Easy;
 use serde::{Deserialize, Serialize};
@@ -12,10 +13,8 @@ use std::{
     process::Command,
 };
 
-//use simd_json::{self};
 #[derive(Serialize, Deserialize, Debug)]
 struct PackageBase {
-    //#[serde(rename = "type")]
     packages: HashMap<String, Package>,
 }
 
@@ -66,6 +65,41 @@ pub fn search(query: &Vec<String>) -> Result<Vec<PkgData>, String> {
     return Ok(out);
 }
 
+pub fn name_to_pname(query: &Vec<String>) -> Vec<String> {
+    checkcache();
+
+    let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
+    let file = fs::read_to_string(format!("{}/pnameref.json", cachedir)).unwrap();
+
+    let data: bimap::BiHashMap<String, String> = serde_json::from_str(&file).expect("Failed to parse json");
+
+    let mut pkgs = vec![];
+    for q in query {
+        pkgs.push(match data.get_by_left(q) {
+            Some(x) => x.to_string(),
+            None => q.to_string(),
+        });
+    }
+    return pkgs;
+}
+
+pub fn pname_to_name(query: &Vec<String>) -> Vec<String> {
+    checkcache();
+
+    let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
+    let file = fs::read_to_string(format!("{}/pnameref.json", cachedir)).unwrap();
+    let data: bimap::BiHashMap<String, String> = serde_json::from_str(&file).expect("Failed to parse json");
+    let mut pkgs = vec![];
+    for q in query {
+        let n = match data.get_by_right(q) {
+            Some(x) => x.to_string(),
+            None => q.to_string(),
+        };
+        pkgs.push(n);
+    }
+    return pkgs;
+}
+
 fn checkcache() {
     let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
 
@@ -82,6 +116,7 @@ fn checkcache() {
     if !Path::is_dir(Path::new(&cachedir))
         || !Path::is_file(Path::new(&format!("{}/version.json", &cachedir)))
     {
+        println!("Updating cache");
         setupcache(version);
         let mut newver = fs::File::create(format!("{}/version.json", &cachedir)).unwrap();
         newver.write_all(&vout.stdout).unwrap();
@@ -94,8 +129,6 @@ fn checkcache() {
         .as_str()
         .unwrap();
 
-    //println!("Old Version is {}", version);
-
     if version != oldversion {
         println!("Out of date, updating cache");
         setupcache(version);
@@ -106,6 +139,9 @@ fn checkcache() {
         setupcache(version);
         let mut newver = fs::File::create(format!("{}/version.json", &cachedir)).unwrap();
         newver.write_all(&vout.stdout).unwrap();
+    } else if !Path::is_file(Path::new(&format!("{}/pnameref.json", &cachedir))) {
+        println!("Updating references");
+        updatepnameref();
     }
 }
 
@@ -175,4 +211,23 @@ fn setupcache(version: &str) {
             }
         }
     }
+    updatepnameref();
+}
+
+fn updatepnameref() {
+    let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
+    let file = fs::read_to_string(format!("{}/packages.json", cachedir)).unwrap();
+    let data: PackageBase = serde_json::from_str(&file).expect("Failed to parse json");
+    let mut hmap = bimap::BiHashMap::new();
+    for (s, pkg) in data.packages {
+        hmap.insert(s, pkg.name.to_string());
+    }
+    let mut out = match serde_json::to_string(&hmap) {
+        Ok(x) => x,
+        Err(e) => panic!("{}", e),
+    };
+    let mut outfile = File::create(format!("{}/pnameref.json", &cachedir).as_str())
+        .expect("Failed to create file");
+    outfile.write_all(out.as_bytes())
+        .expect("Failed to write file");
 }

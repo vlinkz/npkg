@@ -1,5 +1,6 @@
 use std::{env, fs, process::Command};
 use serde_json::{self, Value};
+use crate::search::pname_to_name;
 pub enum ParseError {
     EmptyPkgs,
 }
@@ -42,10 +43,12 @@ pub fn envpkgs() -> Result<Vec<String>,ParseError> {
 
     let data: Value = serde_json::from_str(&String::from_utf8_lossy(&out.stdout)).expect("Failed to parse json");
 
-    let mut currpkgs = vec![];
+    let mut pcurrpkgs = vec![];
     for (_,pkg) in data.as_object().unwrap() {
-        currpkgs.push(pkg.as_object().unwrap()["pname"].as_str().unwrap().to_string());
+        pcurrpkgs.push(pkg.as_object().unwrap()["name"].as_str().unwrap().to_string());
     }
+
+    let currpkgs = pname_to_name(&pcurrpkgs);
 
     return Ok(currpkgs);
 }

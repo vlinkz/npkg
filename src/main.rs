@@ -226,19 +226,19 @@ fn main() {
                 printerror("home-manager is not installed");
                 exit(1);
             }
-            println!("{} {}", "Installing package to ".cyan(), "home".green());
+            println!("{} {}", "Installing package to".cyan(), "home".green().bold());
             let dry = args.dryrun || args.output.is_some();
             pkinstall(PackageTypes::Home, args.packages, args.output, dry);
         } else if args.system {
-            println!("{} {}", "Installing package to ".cyan(), "system".green());
+            println!("{} {}", "Installing package to".cyan(), "system".green().bold());
             let dry = args.dryrun || args.output.is_some();
             pkinstall(PackageTypes::System, args.packages, args.output, dry);
         } else {
             //Default env
             println!(
                 "{} {}",
-                "Installing package to ".cyan(),
-                "nix environment".green()
+                "Installing package to".cyan(),
+                "nix environment".green().bold()
             );
             pkinstall(PackageTypes::Env, args.packages, None, false);
         }
@@ -248,19 +248,19 @@ fn main() {
                 printerror("home-manager is not installed");
                 exit(1);
             }
-            println!("{} {}", "Removing package from ".cyan(), "home".green());
+            println!("{} {}", "Removing package from".cyan(), "home".green().bold());
             let dry = args.dryrun || args.output.is_some();
             pkremove(PackageTypes::Home, args.packages, args.output, dry);
         } else if args.system {
-            println!("{} {}", "Removing package from ".cyan(), "system".green());
+            println!("{} {}", "Removing package from".cyan(), "system".green().bold());
             let dry = args.dryrun || args.output.is_some();
             pkremove(PackageTypes::System, args.packages, args.output, dry);
         } else {
             //Default env
             println!(
                 "{} {}",
-                "Removing package from ".cyan(),
-                "nix environment".green()
+                "Removing package from".cyan(),
+                "nix environment".green().bold()
             );
             pkremove(PackageTypes::Env, args.packages, None, false);
         }
@@ -281,9 +281,12 @@ fn main() {
             pppackages("Nix Environment", &currpkgs);
         } else {
             //Default to all packages
-            pppackages("System", &pklst(PackageTypes::System));
-            pppackages("Home Manager", &pklst(PackageTypes::Home));
-            pppackages("Nix Environment", &pklst(PackageTypes::Env));
+            let syslst = pklst(PackageTypes::System);
+            let homelst = pklst(PackageTypes::Home);
+            let envlst = pklst(PackageTypes::Env);
+            pppackages("System", &syslst);
+            pppackages("Home Manager", &homelst);
+            pppackages("Nix Environment", &envlst);
         }
     } else if args.search {
         let pkgdata = match npkg::search::search(&args.packages) {

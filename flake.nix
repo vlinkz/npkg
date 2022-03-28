@@ -1,49 +1,49 @@
 {
   inputs = {
-    cargo2nix.url = "github:cargo2nix/cargo2nix/master";
-    flake-utils.url = "github:numtide/flake-utils";
-    rust-overlay.url = "github:oxalica/rust-overlay";
-    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
-    rust-overlay.inputs.flake-utils.follows = "flake-utils";
-    nixpkgs.url = "github:nixos/nixpkgs";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    utils.url = "github:numtide/flake-utils";
+    crate2nix = {
+      url = "github:balsoft/crate2nix/tools-nix-version-comparison";
+      flake = false;
+    };
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, cargo2nix, flake-utils, rust-overlay, ... }:
+  outputs = { self, nixpkgs, utils, crate2nix, ... }:
+    utils.lib.eachDefaultSystem
+      (system:
+       let 
+          name = "npkg";
+          pkgs = import nixpkgs { inherit system; };
+          inherit (import "${crate2nix}/tools.nix" { inherit pkgs; })
+            generatedCargoNix;
+          project = pkgs.callPackage (generatedCargoNix {
+            inherit name;
+            src = ./.;
+          }) {};
+        in rec {
+          packages.${name} = project.rootCrate.build;
 
-    # Build the output set for each default system and map system sets into
-    # attributes, resulting in paths such as:
-    # nix build .#packages.x86_64-linux.<name>
-    flake-utils.lib.eachDefaultSystem (system:
+          # `nix build`
+          defaultPackage = packages.${name};
 
-      # let-in expressions, very similar to Rust's let bindings.  These names
-      # are used to express the output but not themselves paths in the output.
-      let
+          # `nix run`
+          apps.${name} = utils.lib.mkApp {
+            inherit name;
+            drv = packages.${name};
+          };
+          defaultApp = apps.${name};
 
-        # create nixpkgs that contains rustBuilder from cargo2nix overlay
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [(import "${cargo2nix}/overlay")
-                      rust-overlay.overlay];
-        };
-
-        # create the workspace & dependencies package set
-        rustPkgs = pkgs.rustBuilder.makePackageSet' {
-          rustChannel = "1.58.1";
-          packageFun = import ./Cargo.nix;
-        };
-
-      in rec {
-        # this is the output (recursive) set (expressed for each system)
-
-        # the packages in `nix build .#packages.<system>.<name>`
-        packages = {
-          # nix build .#hello-world
-          # nix build .#packages.x86_64-linux.hello-world
-          npkg = (rustPkgs.workspace.npkg {}).bin;
-        };
-
-        # nix build
-        defaultPackage = packages.npkg;
-      }
-    );
+          # `nix develop`
+          devShell = pkgs.mkShell {
+            PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
+            nativeBuildInputs = 
+              with pkgs; [ rustc cargo pkgconfig openssl.dev ] ;
+            RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
+          };
+        }
+      );
 }
