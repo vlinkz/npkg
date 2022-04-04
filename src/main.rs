@@ -33,11 +33,11 @@ struct Args {
     #[clap(short, long)]
     search: bool,
 
-    /// Use system '/etc/nixos/configuration.nix'
+    /// Use system 'configuration.nix'
     #[clap(short = 'S', long)]
     system: bool,
 
-    /// Use home-manager '~/.config/nixpkgs/home.nix'
+    /// Use home-manager 'home.nix'
     #[clap(short = 'H', long)]
     home: bool,
 
@@ -74,9 +74,9 @@ fn pppackages(prepend: &str, packages: &Vec<String>) {
     }
 }
 
-fn pklst(pkmgr: PackageTypes) -> Vec<String> {
+fn pklst(pkmgr: PackageTypes, cfg: &Option<String>) -> Vec<String> {
     match pkmgr {
-        PackageTypes::System => match npkg::parse::syspkgs() {
+        PackageTypes::System => match npkg::parse::syspkgs(cfg.to_owned().unwrap()) {
             Ok(mut x) => {
                 x.sort();
                 x
@@ -86,7 +86,7 @@ fn pklst(pkmgr: PackageTypes) -> Vec<String> {
                 exit(1);
             }
         },
-        PackageTypes::Home => match npkg::parse::hmpkgs() {
+        PackageTypes::Home => match npkg::parse::hmpkgs(cfg.to_owned().unwrap()) {
             Ok(mut x) => {
                 x.sort();
                 x
@@ -109,11 +109,11 @@ fn pklst(pkmgr: PackageTypes) -> Vec<String> {
     }
 }
 
-fn pkinstall(pkmgr: PackageTypes, pkgs: Vec<String>, output: Option<String>, dryrun: bool) {
+fn pkinstall(pkmgr: PackageTypes, pkgs: Vec<String>, output: Option<String>, cfg: Option<String>, dryrun: bool) {
     match pkmgr {
         PackageTypes::System => {
-            let currpkgs = pklst(PackageTypes::System);
-            match npkg::operate::sysinstall(pkgs, currpkgs, output, !dryrun) {
+            let currpkgs = pklst(PackageTypes::System, &cfg);
+            match npkg::operate::sysinstall(cfg.unwrap(), pkgs, currpkgs, output, !dryrun) {
                 Ok(()) => {}
                 Err(npkg::operate::OperateError::CmdError) => {
                     printerror("Could not rebuild configuration");
@@ -126,8 +126,8 @@ fn pkinstall(pkmgr: PackageTypes, pkgs: Vec<String>, output: Option<String>, dry
             }
         }
         PackageTypes::Home => {
-            let currpkgs = pklst(PackageTypes::Home);
-            match npkg::operate::hminstall(pkgs, currpkgs, output, !dryrun) {
+            let currpkgs = pklst(PackageTypes::Home, &cfg);
+            match npkg::operate::hminstall(cfg.unwrap(), pkgs, currpkgs, output, !dryrun) {
                 Ok(()) => {}
                 Err(npkg::operate::OperateError::CmdError) => {
                     printerror("Could not rebuild configuration");
@@ -140,7 +140,7 @@ fn pkinstall(pkmgr: PackageTypes, pkgs: Vec<String>, output: Option<String>, dry
             }
         }
         PackageTypes::Env => {
-            let currpkgs = pklst(PackageTypes::Env);
+            let currpkgs = pklst(PackageTypes::Env, &cfg);
             match npkg::operate::envinstall(pkgs, currpkgs) {
                 Ok(()) => {}
                 Err(npkg::operate::OperateError::CmdError) => {
@@ -156,11 +156,11 @@ fn pkinstall(pkmgr: PackageTypes, pkgs: Vec<String>, output: Option<String>, dry
     }
 }
 
-fn pkremove(pkmgr: PackageTypes, pkgs: Vec<String>, output: Option<String>, dryrun: bool) {
+fn pkremove(pkmgr: PackageTypes, pkgs: Vec<String>, output: Option<String>, cfg: Option<String>, dryrun: bool) {
     match pkmgr {
         PackageTypes::System => {
-            let currpkgs = pklst(PackageTypes::System);
-            match npkg::operate::sysremove(pkgs, currpkgs, output, !dryrun) {
+            let currpkgs = pklst(PackageTypes::System, &cfg);
+            match npkg::operate::sysremove(cfg.unwrap(), pkgs, currpkgs, output, !dryrun) {
                 Ok(()) => {}
                 Err(npkg::operate::OperateError::CmdError) => {
                     printerror("Could not rebuild configuration");
@@ -173,8 +173,8 @@ fn pkremove(pkmgr: PackageTypes, pkgs: Vec<String>, output: Option<String>, dryr
             }
         }
         PackageTypes::Home => {
-            let currpkgs = pklst(PackageTypes::Home);
-            match npkg::operate::hmremove(pkgs, currpkgs, output, !dryrun) {
+            let currpkgs = pklst(PackageTypes::Home, &cfg);
+            match npkg::operate::hmremove(cfg.unwrap(), pkgs, currpkgs, output, !dryrun) {
                 Ok(()) => {}
                 Err(npkg::operate::OperateError::CmdError) => {
                     printerror("Could not rebuild configuration");
@@ -187,7 +187,7 @@ fn pkremove(pkmgr: PackageTypes, pkgs: Vec<String>, output: Option<String>, dryr
             }
         }
         PackageTypes::Env => {
-            let currpkgs = pklst(PackageTypes::Env);
+            let currpkgs = pklst(PackageTypes::Env, &cfg);
             match npkg::operate::envremove(pkgs, currpkgs) {
                 Ok(()) => {}
                 Err(npkg::operate::OperateError::CmdError) => {
@@ -220,6 +220,9 @@ fn main() {
         Err(_) => false,
     };
 
+    npkg::config::checkconfig(hm);
+    let (syscfg, hmcfg) = npkg::config::readconfig();
+
     if args.install {
         if args.home {
             if !hm {
@@ -228,11 +231,11 @@ fn main() {
             }
             println!("{} {}", "Installing package to".cyan(), "home".green().bold());
             let dry = args.dryrun || args.output.is_some();
-            pkinstall(PackageTypes::Home, args.packages, args.output, dry);
+            pkinstall(PackageTypes::Home, args.packages, args.output, Some(hmcfg), dry);
         } else if args.system {
             println!("{} {}", "Installing package to".cyan(), "system".green().bold());
             let dry = args.dryrun || args.output.is_some();
-            pkinstall(PackageTypes::System, args.packages, args.output, dry);
+            pkinstall(PackageTypes::System, args.packages, args.output, Some(syscfg), dry);
         } else {
             //Default env
             println!(
@@ -240,7 +243,7 @@ fn main() {
                 "Installing package to".cyan(),
                 "nix environment".green().bold()
             );
-            pkinstall(PackageTypes::Env, args.packages, None, false);
+            pkinstall(PackageTypes::Env, args.packages, None, None,false);
         }
     } else if args.remove {
         if args.home {
@@ -250,11 +253,11 @@ fn main() {
             }
             println!("{} {}", "Removing package from".cyan(), "home".green().bold());
             let dry = args.dryrun || args.output.is_some();
-            pkremove(PackageTypes::Home, args.packages, args.output, dry);
+            pkremove(PackageTypes::Home, args.packages, args.output, Some(hmcfg), dry);
         } else if args.system {
             println!("{} {}", "Removing package from".cyan(), "system".green().bold());
             let dry = args.dryrun || args.output.is_some();
-            pkremove(PackageTypes::System, args.packages, args.output, dry);
+            pkremove(PackageTypes::System, args.packages, args.output, Some(syscfg), dry);
         } else {
             //Default env
             println!(
@@ -262,7 +265,7 @@ fn main() {
                 "Removing package from".cyan(),
                 "nix environment".green().bold()
             );
-            pkremove(PackageTypes::Env, args.packages, None, false);
+            pkremove(PackageTypes::Env, args.packages, None, None, false);
         }
     } else if args.list {
         if args.home {
@@ -271,21 +274,21 @@ fn main() {
                 printerror("home-manager is not installed");
                 exit(1);
             }
-            let currpkgs = pklst(PackageTypes::Home);
+            let currpkgs = pklst(PackageTypes::Home, &Some(hmcfg));
             pppackages("Home Manager", &currpkgs);
         } else if args.system {
-            let currpkgs = pklst(PackageTypes::System);
+            let currpkgs = pklst(PackageTypes::System, &Some(syscfg));
             pppackages("System", &currpkgs);
         } else if args.env {
-            let currpkgs = pklst(PackageTypes::Env);
+            let currpkgs = pklst(PackageTypes::Env, &None);
             pppackages("Nix Environment", &currpkgs);
         } else {
             //Default to all packages
-            let syslst = pklst(PackageTypes::System);
-            let homelst = pklst(PackageTypes::Home);
-            let envlst = pklst(PackageTypes::Env);
+            let syslst = pklst(PackageTypes::System, &Some(syscfg));
+            let homelst = if hm {pklst(PackageTypes::Home, &Some(hmcfg))} else {Vec::new()};
+            let envlst = pklst(PackageTypes::Env, &None);
             pppackages("System", &syslst);
-            pppackages("Home Manager", &homelst);
+            if hm { pppackages("Home Manager", &homelst) }
             pppackages("Nix Environment", &envlst);
         }
     } else if args.search {

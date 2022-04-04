@@ -150,11 +150,28 @@ fn setupcache(version: &str) {
     if &relver[0..5] == "22.05" {
         relver = "unstable".to_string();
     }
+
+    let mut dlver = version.to_string();
+    let v = version.split(".").collect::<Vec<&str>>();
+    if v.len() == 4 {
+        if v[3].len() == 7 {
+            println!("Detected system using flakes: finding proper nixos version");
+            let vout = Command::new("nix-instantiate")
+                .arg("-E")
+                .arg("with import <nixpkgs/lib>; version")
+                .arg("--eval")
+                .arg("--json")
+                .output()
+                .unwrap();
+            dlver = String::from_utf8_lossy(&vout.stdout).to_string().replace("\"", ""); 
+        }
+    }
+
     let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
     fs::create_dir_all(&cachedir).expect("Failed to create cache directory");
     let url = format!(
         "https://releases.nixos.org/nixos/{}/nixos-{}/packages.json.br",
-        relver, version
+        relver, dlver
     );
 
     if Path::is_file(Path::new(&format!("{}/packages.json", &cachedir))) {

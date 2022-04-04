@@ -8,15 +8,22 @@ Npkg is written with rust and uses [nix-editor](https://github.com/vlinkz/nix-ed
 
 This tool is still new/experimental, and being that it directly modifies critical files, such as `/etc/nixos/configuration.nix`, make sure you have backups in case it messes it up or deletes such files. I've already sacrificed some of my files to the void, don't let that happen to you!
 
+# NixOS Installation
+
+```
+git clone https://github.com/vlinkz/npkg
+nix-env -f npkg -i npkg
+```
+
 # Usage with Nix Flakes
 
 ```
 nix run github:vlinkz/npkg -- --help
 ```
 
-```
-npkg 0.0.3
+# Arguments
 
+```
 USAGE:
     npkg [OPTIONS] [PACKAGES]...
 
@@ -27,13 +34,13 @@ OPTIONS:
     -d, --dry-run            Do not build any packages, only edit configuration file
     -E, --env                Use nix environment 'nix-env'
     -h, --help               Print help information
-    -H, --home               Use home-manager '~/.config/nixpkgs/home.nix'
+    -H, --home               Use home-manager 'home.nix'
     -i, --install            Install a package
     -l, --list               List installed packages
     -o, --output <OUTPUT>    Output modified configuration file to a specified location
     -r, --remove             Remove a package
     -s, --search             Search for a package
-    -S, --system             Use system '/etc/nixos/configuration.nix'
+    -S, --system             Use system 'configuration.nix'
     -V, --version            Print version information
 ```
 
@@ -90,6 +97,19 @@ $ npkg -s hello greeting
 * hello (2.12)
   A program that produces a familiar, friendly greeting
 ```
+
+# Configuration
+
+A configuration file is stored in `~/.config/npkg/config.json`, by default, it contains:
+
+```json
+{
+  "systemconfig": "/etc/nixos/configuration.nix",
+  "homeconfig": "/home/$HOME/.config/nixpkgs/home.nix"
+}
+```
+
+These values can be edited to point to other locations. This is useful in [nix flake based systems](https://nixos.wiki/wiki/Flakes#Using_nix_flakes_with_NixOS) or any system where config files are not in expected locations.
 
 # But why?
 

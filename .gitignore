@@ -3,3 +3,4 @@
 /src/*.bak
 /result-bin
 /result
+shell.nix

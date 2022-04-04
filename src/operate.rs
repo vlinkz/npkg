@@ -1,22 +1,28 @@
+use crate::search::name_to_pname;
 use std::{
     env, fs,
     process::{exit, Command},
 };
-use crate::search::name_to_pname;
 
 pub enum OperateError {
     CmdError,
     WriteError(String),
 }
 
+enum Actions {
+    Install,
+    Remove,
+}
+
 pub fn hminstall(
+    file: String,
     packages: Vec<String>,
     currpkgs: Vec<String>,
     output: Option<String>,
     build: bool,
 ) -> Result<(), OperateError> {
     let mut b = build;
-    let file = format!("{}/.config/nixpkgs/home.nix", env::var("HOME").unwrap());
+    //let file = format!("{}/.config/nixpkgs/home.nix", env::var("HOME").unwrap());
     let outfile = match output {
         Some(s) => {
             b = false;
@@ -30,7 +36,7 @@ pub fn hminstall(
         &file,
         &outfile,
         "home.packages",
-        true,
+        Actions::Install,
         "home-manager",
         b,
     ) {
@@ -40,13 +46,14 @@ pub fn hminstall(
 }
 
 pub fn sysinstall(
+    file: String,
     packages: Vec<String>,
     currpkgs: Vec<String>,
     output: Option<String>,
     build: bool,
 ) -> Result<(), OperateError> {
     let mut b = build;
-    let file = "/etc/nixos/configuration.nix".to_string();
+    //let file = "/etc/nixos/configuration.nix".to_string();
     let outfile = match output {
         Some(s) => {
             b = false;
@@ -60,7 +67,7 @@ pub fn sysinstall(
         &file,
         &outfile,
         "environment.systemPackages",
-        true,
+        Actions::Install,
         "nixos-rebuild",
         b,
     ) {
@@ -94,12 +101,13 @@ pub fn envinstall(packages: Vec<String>, currpkgs: Vec<String>) -> Result<(), Op
 }
 
 pub fn hmremove(
+    file: String,
     packages: Vec<String>,
     currpkgs: Vec<String>,
     output: Option<String>,
     build: bool,
 ) -> Result<(), OperateError> {
-    let file = format!("{}/.config/nixpkgs/home.nix", env::var("HOME").unwrap());
+    //let file = format!("{}/.config/nixpkgs/home.nix", env::var("HOME").unwrap());
     let mut b = build;
     let outfile = match output {
         Some(s) => {
@@ -114,7 +122,7 @@ pub fn hmremove(
         &file,
         &outfile,
         "home.packages",
-        false,
+        Actions::Remove,
         "home-manager",
         b,
     ) {
@@ -124,13 +132,14 @@ pub fn hmremove(
 }
 
 pub fn sysremove(
+    file: String,
     packages: Vec<String>,
     currpkgs: Vec<String>,
     output: Option<String>,
     build: bool,
 ) -> Result<(), OperateError> {
     let mut b = build;
-    let file = "/etc/nixos/configuration.nix".to_string();
+    //let file = "/etc/nixos/configuration.nix".to_string();
     let outfile = match output {
         Some(s) => {
             b = false;
@@ -145,7 +154,7 @@ pub fn sysremove(
         &file,
         &outfile,
         "environment.systemPackages",
-        false,
+        Actions::Remove,
         "nixos-rebuild",
         b,
     ) {
@@ -186,7 +195,7 @@ fn cfgoperate(
     file: &str,
     outfile: &str,
     query: &str,
-    installorrm: bool,
+    installorrm: Actions,
     cmd: &str,
     build: bool,
 ) -> Result<(), OperateError> {
@@ -217,7 +226,7 @@ fn cfgoperate(
             .collect::<Vec<String>>();
     }
 
-    let out = if installorrm {
+    /*let out = if installorrm {
         match nix_editor::write::addtoarr(&f, query, pkgs) {
             Ok(x) => x,
             Err(_) => exit(1),
@@ -227,15 +236,26 @@ fn cfgoperate(
             Ok(x) => x,
             Err(_) => exit(1),
         }
+    };*/
+
+    let out = match installorrm {
+        Actions::Install => match nix_editor::write::addtoarr(&f, query, pkgs) {
+            Ok(x) => x,
+            Err(_) => exit(1),
+        },
+        Actions::Remove => match nix_editor::write::rmarr(&f, query, pkgs) {
+            Ok(x) => x,
+            Err(_) => exit(1),
+        },
     };
 
     match fs::write(&outfile, &out) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(_) => {
             let mut file = outfile.split("/").collect::<Vec<&str>>();
             file.pop();
-            return Err(OperateError::WriteError(file.join("/")))
-        },
+            return Err(OperateError::WriteError(file.join("/")));
+        }
     };
 
     if build {
