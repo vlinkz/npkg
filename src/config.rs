@@ -12,9 +12,10 @@ use owo_colors::*;
 struct Config {
     systemconfig: String,
     homeconfig: String,
+    flake: Option<String>,
 }
 
-pub fn checkconfig(hm: bool) {
+pub fn checkconfig() {
     let cfgdir = format!("{}/.config/npkg", env::var("HOME").unwrap());
     if !Path::is_file(Path::new(&format!("{}/config.json", &cfgdir))) {
         createconfig();
@@ -27,13 +28,14 @@ fn createconfig() {
     let config = Config {
         systemconfig: "/etc/nixos/configuration.nix".to_string(),
         homeconfig: format!("{}/.config/nixpkgs/home.nix", env::var("HOME").unwrap()),
+        flake: None,
     };
     let json = serde_json::to_string_pretty(&config).unwrap();
     let mut file = File::create(format!("{}/config.json", cfgdir)).unwrap();
     file.write_all(json.as_bytes()).unwrap();
 }
 
-pub fn readconfig() -> (String, String) {
+pub fn readconfig() -> (String, String, Option<String>) {
     let cfgdir = format!("{}/.config/npkg", env::var("HOME").unwrap());
     let file = fs::read_to_string(format!("{}/config.json", cfgdir)).unwrap();
     let config: Config = match serde_json::from_str(&file) {
@@ -44,17 +46,19 @@ pub fn readconfig() -> (String, String) {
             return (
                 "/etc/nixos/configuration.nix".to_string(),
                 format!("{}/.config/nixpkgs/home.nix", env::var("HOME").unwrap()),
+                None,
             );
         }
     };
     if Path::is_file(Path::new(&config.systemconfig)) {
-        return (config.systemconfig, config.homeconfig);
+        return (config.systemconfig, config.homeconfig, config.flake);
     } else {
         println!("{}", "Config file is invalid".bright_red());
         println!("{}", "Using default values".yellow());
         return (
             "/etc/nixos/configuration.nix".to_string(),
             format!("{}/.config/nixpkgs/home.nix", env::var("HOME").unwrap()),
+            None,
         );
     }
 }

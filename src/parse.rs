@@ -6,7 +6,6 @@ pub enum ParseError {
 }
 
 pub fn hmpkgs(file: String) -> Result<Vec<String>,ParseError> {
-    //let file = format!("{}/.config/nixpkgs/home.nix", env::var("HOME").unwrap());
     let f = fs::read_to_string(&file).expect("Failed to read file");
 
     //Add check for current packages
@@ -20,7 +19,6 @@ pub fn hmpkgs(file: String) -> Result<Vec<String>,ParseError> {
 }
 
 pub fn syspkgs(file: String) -> Result<Vec<String>,ParseError> {
-    //let file = "/etc/nixos/configuration.nix";
     let f = fs::read_to_string(file).expect("Failed to read file");
 
     //Add check for current packages

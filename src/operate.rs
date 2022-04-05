@@ -20,9 +20,9 @@ pub fn hminstall(
     currpkgs: Vec<String>,
     output: Option<String>,
     build: bool,
+    flake: Option<String>,
 ) -> Result<(), OperateError> {
     let mut b = build;
-    //let file = format!("{}/.config/nixpkgs/home.nix", env::var("HOME").unwrap());
     let outfile = match output {
         Some(s) => {
             b = false;
@@ -39,6 +39,7 @@ pub fn hminstall(
         Actions::Install,
         "home-manager",
         b,
+        flake,
     ) {
         Ok(()) => Ok(()),
         Err(e) => Err(e),
@@ -51,9 +52,9 @@ pub fn sysinstall(
     currpkgs: Vec<String>,
     output: Option<String>,
     build: bool,
+    flake: Option<String>,
 ) -> Result<(), OperateError> {
     let mut b = build;
-    //let file = "/etc/nixos/configuration.nix".to_string();
     let outfile = match output {
         Some(s) => {
             b = false;
@@ -70,6 +71,7 @@ pub fn sysinstall(
         Actions::Install,
         "nixos-rebuild",
         b,
+        flake,
     ) {
         Ok(()) => Ok(()),
         Err(e) => Err(e),
@@ -106,8 +108,8 @@ pub fn hmremove(
     currpkgs: Vec<String>,
     output: Option<String>,
     build: bool,
+    flake: Option<String>,
 ) -> Result<(), OperateError> {
-    //let file = format!("{}/.config/nixpkgs/home.nix", env::var("HOME").unwrap());
     let mut b = build;
     let outfile = match output {
         Some(s) => {
@@ -125,6 +127,7 @@ pub fn hmremove(
         Actions::Remove,
         "home-manager",
         b,
+        flake,
     ) {
         Ok(()) => Ok(()),
         Err(e) => Err(e),
@@ -137,9 +140,9 @@ pub fn sysremove(
     currpkgs: Vec<String>,
     output: Option<String>,
     build: bool,
+    flake: Option<String>,
 ) -> Result<(), OperateError> {
     let mut b = build;
-    //let file = "/etc/nixos/configuration.nix".to_string();
     let outfile = match output {
         Some(s) => {
             b = false;
@@ -157,6 +160,7 @@ pub fn sysremove(
         Actions::Remove,
         "nixos-rebuild",
         b,
+        flake,
     ) {
         Ok(()) => Ok(()),
         Err(e) => Err(e),
@@ -195,17 +199,27 @@ fn cfgoperate(
     file: &str,
     outfile: &str,
     query: &str,
-    installorrm: Actions,
+    action: Actions,
     cmd: &str,
     build: bool,
+    flake: Option<String>,
 ) -> Result<(), OperateError> {
     let f = fs::read_to_string(file).expect("Failed to read file");
 
     //Add check for current packages
     let mut pkgs = vec![];
     for p in packages {
-        if !currpkgs.contains(&p) {
-            pkgs.push(p);
+        match action {
+            Actions::Install => {
+                if !currpkgs.contains(&p) {
+                    pkgs.push(p);
+                }
+            }
+            Actions::Remove => {
+                if currpkgs.contains(&p) {
+                    pkgs.push(p);
+                }
+            }
         }
     }
 
@@ -226,19 +240,7 @@ fn cfgoperate(
             .collect::<Vec<String>>();
     }
 
-    /*let out = if installorrm {
-        match nix_editor::write::addtoarr(&f, query, pkgs) {
-            Ok(x) => x,
-            Err(_) => exit(1),
-        }
-    } else {
-        match nix_editor::write::rmarr(&f, query, pkgs) {
-            Ok(x) => x,
-            Err(_) => exit(1),
-        }
-    };*/
-
-    let out = match installorrm {
+    let out = match action {
         Actions::Install => match nix_editor::write::addtoarr(&f, query, pkgs) {
             Ok(x) => x,
             Err(_) => exit(1),
@@ -259,16 +261,25 @@ fn cfgoperate(
     };
 
     if build {
-        let status = Command::new(cmd)
+        let status = match flake {
+          None => {
+            Command::new(cmd)
             .arg("switch")
-            //.arg("--option")
-            //.arg("substitute")
-            //.arg("false")
             .status()
-            .expect(&format!("Failed to run {}", cmd));
+            .expect(&format!("Failed to run {}", cmd))
+          }
+          Some(s) => {
+            println!("Rebuilding with nix flakes");
+            Command::new(cmd)
+            .arg("switch")
+            .arg("--flake")
+            .arg(s)
+            .status()
+            .expect(&format!("Failed to run {}", cmd))
+          }
+        };
 
         if !status.success() {
-            //printerror("Could not rebuild configuration");
             fs::write(&outfile, f).expect("Unable to write file");
             return Err(OperateError::CmdError);
         }

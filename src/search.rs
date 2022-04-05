@@ -36,7 +36,7 @@ pub fn search(query: &Vec<String>) -> Result<Vec<PkgData>, String> {
 
     let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
     let file = fs::read_to_string(format!("{}/packages.json", cachedir)).unwrap();
-    //println!("Read file");
+
     let data: PackageBase = serde_json::from_str(&file).expect("Failed to parse json");
     let pkgs = data.packages.keys().filter(|x| {
         let mut b = true;
@@ -111,7 +111,6 @@ fn checkcache() {
         serde_json::from_str(&String::from_utf8_lossy(&vout.stdout)).expect("Failed to parse json");
 
     let version = data.as_object().unwrap()["nixosVersion"].as_str().unwrap();
-    //println!("Version is {}", version);
 
     if !Path::is_dir(Path::new(&cachedir))
         || !Path::is_file(Path::new(&format!("{}/version.json", &cachedir)))
@@ -239,7 +238,7 @@ fn updatepnameref() {
     for (s, pkg) in data.packages {
         hmap.insert(s, pkg.name.to_string());
     }
-    let mut out = match serde_json::to_string(&hmap) {
+    let out = match serde_json::to_string(&hmap) {
         Ok(x) => x,
         Err(e) => panic!("{}", e),
     };

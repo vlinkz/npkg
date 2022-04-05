@@ -105,7 +105,8 @@ A configuration file is stored in `~/.config/npkg/config.json`, by default, it c
 ```json
 {
   "systemconfig": "/etc/nixos/configuration.nix",
-  "homeconfig": "/home/$HOME/.config/nixpkgs/home.nix"
+  "homeconfig": "/home/$HOME/.config/nixpkgs/home.nix",
+  "flake": null
 }
 ```
 
