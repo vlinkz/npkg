@@ -479,13 +479,15 @@ fn main() {
                 "system".green().bold()
             );
             pkupdate(&opts);
-            opts.pkgmgr = Home;
-            println!(
-                "{} {}",
-                "Updating packages in".cyan(),
-                "home".green().bold()
-            );
-            pkupdate(&opts);
+            if hm {
+                opts.pkgmgr = Home;
+                println!(
+                    "{} {}",
+                    "Updating packages in".cyan(),
+                    "home".green().bold()
+                );
+                pkupdate(&opts);
+            }
             opts.pkgmgr = Env;
             println!(
                 "{} {}",
