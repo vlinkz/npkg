@@ -217,7 +217,7 @@ fn pkupdate(opts: &NpkgData) {
                     exit(1);
                 }
             }
-        },
+        }
         System => {
             match npkg::operate::cfgswitch(&opts) {
                 Ok(()) => {}
@@ -230,7 +230,7 @@ fn pkupdate(opts: &NpkgData) {
                     exit(1);
                 }
             };
-        },
+        }
         Env => {
             match npkg::operate::envupdate() {
                 Ok(()) => {}
@@ -243,7 +243,7 @@ fn pkupdate(opts: &NpkgData) {
                     exit(1);
                 }
             };
-        },
+        }
     }
 }
 
@@ -285,11 +285,19 @@ fn main() {
                 exit(1);
             }
             opts.pkgmgr = Home;
-            println!("{} {}", "Installing package to".cyan(), "home".green().bold());
+            println!(
+                "{} {}",
+                "Installing package to".cyan(),
+                "home".green().bold()
+            );
             pkinstall(opts);
         } else if args.system {
             opts.pkgmgr = System;
-            println!("{} {}", "Installing package to".cyan(), "system".green().bold());
+            println!(
+                "{} {}",
+                "Installing package to".cyan(),
+                "system".green().bold()
+            );
             pkinstall(opts);
         } else {
             //Default env
@@ -307,11 +315,19 @@ fn main() {
                 printerror("home-manager is not installed");
                 exit(1);
             }
-            println!("{} {}", "Removing package from".cyan(), "home".green().bold());
+            println!(
+                "{} {}",
+                "Removing package from".cyan(),
+                "home".green().bold()
+            );
             pkremove(opts);
         } else if args.system {
             opts.pkgmgr = System;
-            println!("{} {}", "Removing package from".cyan(), "system".green().bold());
+            println!(
+                "{} {}",
+                "Removing package from".cyan(),
+                "system".green().bold()
+            );
             pkremove(opts);
         } else {
             //Default env
@@ -346,14 +362,25 @@ fn main() {
             opts.pkgmgr = System;
             let syslst = pklst(&opts);
             opts.pkgmgr = Home;
-            let homelst = if hm {pklst(&opts)} else {Vec::new()};
+            let homelst = if hm { pklst(&opts) } else { Vec::new() };
             opts.pkgmgr = Env;
             let envlst = pklst(&opts);
             pppackages("System", &syslst);
-            if hm { pppackages("Home Manager", &homelst) }
+            if hm {
+                pppackages("Home Manager", &homelst)
+            }
             pppackages("Nix Environment", &envlst);
         }
     } else if args.search {
+        // Get packages
+        opts.pkgmgr = System;
+        let syslst = pklst(&opts);
+        opts.pkgmgr = Home;
+        let homelst = if hm { pklst(&opts) } else { Vec::new() };
+        opts.pkgmgr = Env;
+        let envlst = pklst(&opts);
+
+        // Search for packages
         let pkgdata = match npkg::search::search(&opts.pkgs) {
             Ok(x) => x,
             Err(_) => {
@@ -363,7 +390,7 @@ fn main() {
         };
 
         for pkg in pkgdata {
-            let mut name = pkg.pname;
+            let mut name = pkg.pname.to_string();
             for st in &opts.pkgs {
                 let nl = name.to_lowercase();
                 let sl = st.to_lowercase();
@@ -378,7 +405,17 @@ fn main() {
 
                 name = name.replace(st.as_str(), &st.green().to_string());
             }
-            println!("* {} ({})", name.bold(), pkg.version);
+            let mut outstr = format!("* {} ({})", name.bold(), pkg.version);
+            if syslst.contains(&pkg.pname) {
+                outstr += &format!(" ({})", "system".bright_red());
+            }
+            if homelst.contains(&pkg.pname) {
+                outstr += &format!(" ({})", "home".bright_cyan());
+            }
+            if envlst.contains(&pkg.pname) {
+                outstr += &format!(" ({})", "nix env".bright_yellow());
+            }
+            println!("{}", outstr);
             match pkg.description {
                 Some(x) => {
                     let mut desc = x.trim().replace("\n", " ");
@@ -407,12 +444,20 @@ fn main() {
                 exit(1);
             }
             opts.pkgmgr = Home;
-            println!("{} {}", "Updating packages in".cyan(), "home".green().bold());
+            println!(
+                "{} {}",
+                "Updating packages in".cyan(),
+                "home".green().bold()
+            );
             npkg::operate::chnupdate(&opts);
             pkupdate(&opts);
         } else if args.system {
             opts.pkgmgr = System;
-            println!("{} {}", "Updating packages in".cyan(), "system".green().bold());
+            println!(
+                "{} {}",
+                "Updating packages in".cyan(),
+                "system".green().bold()
+            );
             npkg::operate::chnupdate(&opts);
             pkupdate(&opts);
         } else if args.env {
@@ -428,10 +473,18 @@ fn main() {
         } else {
             npkg::operate::chnupdate(&opts);
             opts.pkgmgr = System;
-            println!("{} {}", "Updating packages in".cyan(), "system".green().bold());
+            println!(
+                "{} {}",
+                "Updating packages in".cyan(),
+                "system".green().bold()
+            );
             pkupdate(&opts);
             opts.pkgmgr = Home;
-            println!("{} {}", "Updating packages in".cyan(), "home".green().bold());
+            println!(
+                "{} {}",
+                "Updating packages in".cyan(),
+                "home".green().bold()
+            );
             pkupdate(&opts);
             opts.pkgmgr = Env;
             println!(

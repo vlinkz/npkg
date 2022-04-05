@@ -103,9 +103,11 @@ This will print a list of packages that match the query specified. For example:
 ```
 $ npkg -s hello greeting
 
-* hello (2.12)
+* hello (2.12) (nix env)
   A program that produces a familiar, friendly greeting
 ```
+
+This means that package `hello` version `2.12` is currently installed with `nix-env`.
 
 # Configuration
 
