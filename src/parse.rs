@@ -1,11 +1,11 @@
-use std::{env, fs, process::Command};
-use serde_json::{self, Value};
 use crate::search::pname_to_name;
+use serde_json::{self, Value};
+use std::{fs, process::Command};
 pub enum ParseError {
     EmptyPkgs,
 }
 
-pub fn hmpkgs(file: String) -> Result<Vec<String>,ParseError> {
+pub fn hmpkgs(file: String) -> Result<Vec<String>, ParseError> {
     let f = fs::read_to_string(&file).expect("Failed to read file");
 
     //Add check for current packages
@@ -18,7 +18,7 @@ pub fn hmpkgs(file: String) -> Result<Vec<String>,ParseError> {
     return Ok(currpkgs);
 }
 
-pub fn syspkgs(file: String) -> Result<Vec<String>,ParseError> {
+pub fn syspkgs(file: String) -> Result<Vec<String>, ParseError> {
     let f = fs::read_to_string(file).expect("Failed to read file");
 
     //Add check for current packages
@@ -31,19 +31,24 @@ pub fn syspkgs(file: String) -> Result<Vec<String>,ParseError> {
     return Ok(currpkgs);
 }
 
-pub fn envpkgs() -> Result<Vec<String>,ParseError> {
-
+pub fn envpkgs() -> Result<Vec<String>, ParseError> {
     let out = Command::new("nix-env")
         .arg("-q")
         .arg("--json")
         .output()
         .expect("Failed to execute process");
 
-    let data: Value = serde_json::from_str(&String::from_utf8_lossy(&out.stdout)).expect("Failed to parse json");
+    let data: Value =
+        serde_json::from_str(&String::from_utf8_lossy(&out.stdout)).expect("Failed to parse json");
 
     let mut pcurrpkgs = vec![];
-    for (_,pkg) in data.as_object().unwrap() {
-        pcurrpkgs.push(pkg.as_object().unwrap()["name"].as_str().unwrap().to_string());
+    for (_, pkg) in data.as_object().unwrap() {
+        pcurrpkgs.push(
+            pkg.as_object().unwrap()["name"]
+                .as_str()
+                .unwrap()
+                .to_string(),
+        );
     }
 
     let currpkgs = pname_to_name(&pcurrpkgs);

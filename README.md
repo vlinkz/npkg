@@ -41,6 +41,7 @@ OPTIONS:
     -r, --remove             Remove a package
     -s, --search             Search for a package
     -S, --system             Use system 'configuration.nix'
+    -u, --update             Update packages
     -V, --version            Print version information
 ```
 
@@ -55,7 +56,7 @@ npkg -i <PACKAGE>
 By default, this will use `nix-env` and install the package in you current environment. You can choose to use a specific available installer by using the `-S`, `-H`, or `-E` flags.
 
 -   ```
-    sudo npkg -iS hello
+    npkg -iS hello
     ```
     will install the `hello` package as a system package by modifying your `/etc/nixos/configuration.nix` file and then calling `nixos-rebuild switch`.
 
@@ -76,6 +77,14 @@ Very similar to installing packages:
 npkg -r <PACKAGE>
 ```
 The same `-S`, `-H`, and `-E` flags apply.
+
+## Updating packages
+
+To update all packages:
+```
+npkg -u
+```
+To specify only one type, the same `-S`, `-H`, and `-E` flags apply.
 
 ## List installed packages
 
@@ -117,9 +126,6 @@ These values can be edited to point to other locations. This is useful in [nix f
 I wanted to code something as a proof of concept for using [nix-editor](https://github.com/vlinkz/nix-editor) as a backed for other tools. Plus I had nothing better to do on a Saturday. Although given my limited time using this, I think I'll stick to it for a while.
 
 # Future plans
-
-- Add update command: `npkg -u`
-    - Maybe update channels as well? :eyes:
 
 - Check for installed packages in other locations.
     
