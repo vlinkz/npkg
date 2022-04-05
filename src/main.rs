@@ -330,12 +330,15 @@ fn main() {
                 printerror("home-manager is not installed");
                 exit(1);
             }
+            opts.pkgmgr = Home;
             let currpkgs = pklst(&opts);
             pppackages("Home Manager", &currpkgs);
         } else if args.system {
+            opts.pkgmgr = System;
             let currpkgs = pklst(&opts);
             pppackages("System", &currpkgs);
         } else if args.env {
+            opts.pkgmgr = Env;
             let currpkgs = pklst(&opts);
             pppackages("Nix Environment", &currpkgs);
         } else {
