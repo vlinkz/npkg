@@ -9,6 +9,7 @@ let
       owner = "vlinkz";
       repo = "npkg";
       rev = "0.0.9";
+      sha256 = "OUOIO2PRbQ2VtAWPE/XL+aGaRF4pqik0+lzypndHO34=";
     }
   );
 
