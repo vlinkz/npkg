@@ -1,10 +1,10 @@
 [package]
 name = "npkg"
-version = "0.0.9"
+version = "0.0.10"
 edition = "2021"
 
 [dependencies]
-nix-editor = "0.2.7"
+nix-editor = "0.2.8"
 clap =  { version = "3.1.8", features = ["derive"] }
 owo-colors = "3.3.0"
 serde_json = "1.0.79"

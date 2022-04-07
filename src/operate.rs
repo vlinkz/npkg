@@ -77,7 +77,7 @@ pub fn envinstall(opts: NpkgData) -> Result<(), OperateError> {
 
     match Command::new("nix-env")
         .arg("-iA")
-        .arg(pkgs.join(" "))
+        .args(pkgs)
         .status()
     {
         Ok(_) => Ok(()),
@@ -103,7 +103,7 @@ pub fn envremove(opts: NpkgData) -> Result<(), OperateError> {
 
     match Command::new("nix-env")
         .arg("-e")
-        .arg(pkgs.join(" "))
+        .args(pkgs)
         .status()
     {
         Ok(_) => Ok(()),

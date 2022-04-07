@@ -40,7 +40,7 @@
           # `nix develop`
           devShell = pkgs.mkShell {
             nativeBuildInputs = 
-              with pkgs; [ rustc cargo ] ;
+              with pkgs; [ rustc cargo openssl pkgconfig ] ;
           };
         }
       );

@@ -1,4 +1,7 @@
-# Npkg
+Npkg
+===
+[![Built with Nix][builtwithnix badge]][builtwithnix]
+[![License: GPL v3][gplv3 badge]][gplv3]
 
 Npkg is a small tool that allows you to configure all your NixOS packages in one place.
 
@@ -95,7 +98,7 @@ By default, this will use `nix-env` and install the package in you current envir
     will install the `hello` package using [home-manager](https://github.com/nix-community/home-manager) if it is installed. It will modify `~/.config/nixpkgs/home.nix` and then call `home-manager switch`.
 
 -   ```
-    sudo npkg -iE hello
+    npkg -iE hello
     ```
     will install the `hello` package to the current nix environment by calling `nix-env -iA nixos.hello`.
 
@@ -165,3 +168,8 @@ I wanted to code something as a proof of concept for using [nix-editor](https://
 - When removing packages, automatically detect where installed instead of defaulting to `nix-env`
 
 - Whatever else pops into my head
+
+[builtwithnix badge]: https://img.shields.io/badge/Built%20With-Nix-41439A?style=flat-square&logo=nixos&logoColor=white
+[builtwithnix]: https://builtwithnix.org/
+[gplv3 badge]: https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square
+[gplv3]: https://www.gnu.org/licenses/gpl-3.0

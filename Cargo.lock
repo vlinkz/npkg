@@ -235,19 +235,18 @@ dependencies = [
 
 [[package]]
 name = "nix-editor"
-version = "0.2.7"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c51ca58dcf0dcfc3821bd398a22e3830ae9149cf59fac1f77b804f806b809782"
+checksum = "f15b817c0183a92b099f3cab5cc08a82c380fd17dc045fcc19179c01bb7f56e8"
 dependencies = [
  "clap",
  "owo-colors",
  "rnix",
- "serde_json",
 ]
 
 [[package]]
 name = "npkg"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "bimap",
  "brotli",
