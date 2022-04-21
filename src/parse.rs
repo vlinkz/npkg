@@ -1,4 +1,4 @@
-use crate::search::pname_to_name;
+use crate::search::name_to_pname;
 use serde_json::{self, Value};
 use std::{fs, process::Command};
 pub enum ParseError {
@@ -51,7 +51,7 @@ pub fn envpkgs() -> Result<Vec<String>, ParseError> {
         );
     }
 
-    let currpkgs = pname_to_name(&pcurrpkgs);
+    let currpkgs = name_to_pname(&pcurrpkgs);
 
     return Ok(currpkgs);
 }

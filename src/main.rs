@@ -120,7 +120,7 @@ fn pkinstall(mut opts: NpkgData) {
                     exit(1);
                 }
                 Err(npkg::operate::OperateError::WriteError(f)) => {
-                    printerror(format!("Could not write to configuration file, does the directory \"{}\" exist?", f).as_str());
+                    printerror(format!("Could not write to configuration file, do you have permissions in the directory \"{}\"?", f).as_str());
                     exit(1);
                 }
             }

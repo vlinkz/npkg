@@ -65,7 +65,7 @@ pub fn search(query: &Vec<String>) -> Result<Vec<PkgData>, String> {
     return Ok(out);
 }
 
-pub fn name_to_pname(query: &Vec<String>) -> Vec<String> {
+pub fn pname_to_name(query: &Vec<String>) -> Vec<String> {
     checkcache();
 
     let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
@@ -83,7 +83,7 @@ pub fn name_to_pname(query: &Vec<String>) -> Vec<String> {
     return pkgs;
 }
 
-pub fn pname_to_name(query: &Vec<String>) -> Vec<String> {
+pub fn name_to_pname(query: &Vec<String>) -> Vec<String> {
     checkcache();
 
     let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
@@ -191,12 +191,6 @@ fn setupcache(version: &str) {
             })
             .unwrap();
         transfer.perform().unwrap();
-    }
-    {
-        let mut file = File::create(format!("{}/packages.json.br", &cachedir).as_str())
-            .expect("Failed to create file");
-        file.write_all(dst.as_slice())
-            .expect("Failed to write file");
     }
 
     {

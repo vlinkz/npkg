@@ -1,8 +1,9 @@
-use crate::{search::name_to_pname, NpkgData};
+use crate::{search::pname_to_name, NpkgData};
 use owo_colors::*;
 use std::{
     fs,
-    process::{exit, Command},
+    path::Path,
+    process::{exit, Command}, env,
 };
 
 pub enum OperateError {
@@ -75,11 +76,7 @@ pub fn envinstall(opts: NpkgData) -> Result<(), OperateError> {
         exit(0);
     }
 
-    match Command::new("nix-env")
-        .arg("-iA")
-        .args(pkgs)
-        .status()
-    {
+    match Command::new("nix-env").arg("-iA").args(pkgs).status() {
         Ok(_) => Ok(()),
         Err(_) => Err(OperateError::CmdError),
     }
@@ -99,13 +96,9 @@ pub fn envremove(opts: NpkgData) -> Result<(), OperateError> {
         exit(0);
     }
 
-    pkgs = name_to_pname(&pkgs);
+    pkgs = pname_to_name(&pkgs);
 
-    match Command::new("nix-env")
-        .arg("-e")
-        .args(pkgs)
-        .status()
-    {
+    match Command::new("nix-env").arg("-e").args(pkgs).status() {
         Ok(_) => Ok(()),
         Err(_) => Err(OperateError::CmdError),
     }
@@ -206,9 +199,35 @@ fn cfgoperate(mut opts: NpkgData, action: Actions) -> Result<(), OperateError> {
     match fs::write(&outfile, &out) {
         Ok(_) => {}
         Err(_) => {
-            let mut file = outfile.split("/").collect::<Vec<&str>>();
-            file.pop();
-            return Err(OperateError::WriteError(file.join("/")));
+            if Path::new(&outfile).is_file() {
+
+                println!("{} {}", "Root permissions needed to modify".bright_yellow(), &outfile.green());
+
+                let file = outfile.split("/").collect::<Vec<&str>>().pop().unwrap();
+                let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
+                fs::create_dir_all(&cachedir).expect("Failed to create cache directory");
+
+                match fs::write(format!("{}/{}", cachedir, file), &out) {
+                    Ok(_) => {
+                        Command::new("sudo")
+                            .arg("cp")
+                            .arg(format!("{}/{}", cachedir, file))
+                            .arg(&outfile)
+                            .status()
+                            .expect(&format!("{}", "Failed to execute process sudo cp".red()));
+                        fs::remove_file(format!("{}/{}", cachedir, file)).expect("Failed to remove file");
+                    }
+                    Err(_) => {
+                        let mut dir = outfile.split("/").collect::<Vec<&str>>();
+                        dir.pop();
+                        return Err(OperateError::WriteError(dir.join("/")));
+                    }
+                };
+            } else {
+                let mut dir = outfile.split("/").collect::<Vec<&str>>();
+                dir.pop();
+                return Err(OperateError::WriteError(dir.join("/")));
+            }
         }
     };
 
@@ -216,8 +235,44 @@ fn cfgoperate(mut opts: NpkgData, action: Actions) -> Result<(), OperateError> {
         match cfgswitch(&opts) {
             Ok(()) => {}
             Err(e) => {
-                fs::write(&outfile, f).expect("Unable to write file");
                 println!("{}", "Failed to switch config".red());
+                match fs::write(&outfile, &f) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        if Path::new(&outfile).is_file() {
+                            
+                            println!("{} {}", "Root permissions needed to restore".bright_yellow(), &outfile.green());
+            
+                            let file = outfile.split("/").collect::<Vec<&str>>().pop().unwrap();
+                            let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
+                            fs::create_dir_all(&cachedir).expect("Failed to create cache directory");
+            
+                            match fs::write(format!("{}/{}", cachedir, file), &f) {
+                                Ok(_) => {
+                                    Command::new("sudo")
+                                        .arg("cp")
+                                        .arg(format!("{}/{}", cachedir, file))
+                                        .arg(&outfile)
+                                        .status()
+                                        .expect(&format!("{}", "Failed to execute process sudo cp".red()));
+                                    fs::remove_file(format!("{}/{}", cachedir, file)).expect("Failed to remove file");
+                                }
+                                Err(_) => {
+                                    let mut dir = outfile.split("/").collect::<Vec<&str>>();
+                                    dir.pop();
+                                    return Err(OperateError::WriteError(dir.join("/")));
+                                }
+                            };
+                        } else {
+                            let mut dir = outfile.split("/").collect::<Vec<&str>>();
+                            dir.pop();
+                            return Err(OperateError::WriteError(dir.join("/")));
+                        }
+                    }
+                };
+
+
+                //fs::write(&outfile, f).expect("Unable to write file");
                 return Err(e);
             }
         }
