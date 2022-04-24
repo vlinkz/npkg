@@ -1,7 +1,7 @@
 Npkg
 ===
 [![Built with Nix][builtwithnix badge]][builtwithnix]
-[![License: GPL v3][gplv3 badge]][gplv3]
+[![License: MIT][MIT badge]][MIT]
 
 Npkg is a small tool that allows you to configure all your NixOS packages in one place.
 
@@ -171,5 +171,5 @@ I wanted to code something as a proof of concept for using [nix-editor](https://
 
 [builtwithnix badge]: https://img.shields.io/badge/Built%20With-Nix-41439A?style=flat-square&logo=nixos&logoColor=white
 [builtwithnix]: https://builtwithnix.org/
-[gplv3 badge]: https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square
-[gplv3]: https://www.gnu.org/licenses/gpl-3.0
+[MIT badge]: https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square
+[MIT]: https://opensource.org/licenses/MIT
