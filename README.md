@@ -20,33 +20,6 @@ nix-env -f npkg -i npkg
 
 Then modify `~/npkg/config.json` to match your configuration.
 
-# Home Manager Installation
-
-Download [npkg.nix](npkg.nix) somewhere near your configuration.
-
-Modify `home.nix` to add `npkg.nix` to the imports. Also configure the settings to match your configuration layout.
-
-```nix
-{ config, pkgs, lib, ... }:
-
-{
-
-  imports = [
-    ./modules/npkg.nix
-  ];
-
-  programs.npkg = {
-    enable = true;
-    settings = {
-      systemconfig = "/home/victor/nix/configuration.nix";
-      homeconfig = "/home/victor/nix/home.nix";
-      flake = "/home/victor/nix";
-    };
-  };
-
-rest of your config...
-```
-
 # Usage with Nix Flakes
 
 ```
@@ -157,7 +130,7 @@ These values can be edited to point to other locations. This is useful in [nix f
 
 # But why?
 
-I wanted to code something as a proof of concept for using [nix-editor](https://github.com/vlinkz/nix-editor) as a backed for other tools. Plus I had nothing better to do on a Saturday. Although given my limited time using this, I think I'll stick to it for a while.
+I wanted to code something as a proof of concept for using [nix-editor](https://github.com/vlinkz/nix-editor) as a backed for other tools. But so far I've been using it almost daily!
 
 # Future plans
 
