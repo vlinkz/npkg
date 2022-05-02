@@ -15,10 +15,17 @@ struct Config {
     flake: Option<String>,
 }
 
-pub fn checkconfig() {
+pub fn checkconfig() -> String {
     let cfgdir = format!("{}/.config/npkg", env::var("HOME").unwrap());
     if !Path::is_file(Path::new(&format!("{}/config.json", &cfgdir))) {
-        createconfig();
+        if !Path::is_file(Path::new(&format!("/etc/npkg/config.json"))) {
+            createconfig();
+            return cfgdir;
+        } else {
+            return "/etc/npkg/".to_string();
+        }
+    } else {
+        return cfgdir;
     }
 }
 
@@ -35,8 +42,7 @@ fn createconfig() {
     file.write_all(json.as_bytes()).unwrap();
 }
 
-pub fn readconfig() -> (String, String, Option<String>) {
-    let cfgdir = format!("{}/.config/npkg", env::var("HOME").unwrap());
+pub fn readconfig(cfgdir: String) -> (String, String, Option<String>) {
     let file = fs::read_to_string(format!("{}/config.json", cfgdir)).unwrap();
     let config: Config = match serde_json::from_str(&file) {
         Ok(x) => x,

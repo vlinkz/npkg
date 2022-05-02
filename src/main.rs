@@ -264,8 +264,8 @@ fn main() {
         Err(_) => false,
     };
 
-    npkg::config::checkconfig();
-    let (syscfg, hmcfg, flake) = npkg::config::readconfig();
+    let cfgdir = npkg::config::checkconfig();
+    let (syscfg, hmcfg, flake) = npkg::config::readconfig(cfgdir);
 
     let mut opts = NpkgData {
         pkgmgr: Env,
