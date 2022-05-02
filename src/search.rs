@@ -71,7 +71,8 @@ pub fn pname_to_name(query: &Vec<String>) -> Vec<String> {
     let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
     let file = fs::read_to_string(format!("{}/pnameref.json", cachedir)).unwrap();
 
-    let data: bimap::BiHashMap<String, String> = serde_json::from_str(&file).expect("Failed to parse json");
+    let data: bimap::BiHashMap<String, String> =
+        serde_json::from_str(&file).expect("Failed to parse json");
 
     let mut pkgs = vec![];
     for q in query {
@@ -88,7 +89,8 @@ pub fn name_to_pname(query: &Vec<String>) -> Vec<String> {
 
     let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
     let file = fs::read_to_string(format!("{}/pnameref.json", cachedir)).unwrap();
-    let data: bimap::BiHashMap<String, String> = serde_json::from_str(&file).expect("Failed to parse json");
+    let data: bimap::BiHashMap<String, String> =
+        serde_json::from_str(&file).expect("Failed to parse json");
     let mut pkgs = vec![];
     for q in query {
         let n = match data.get_by_right(q) {
@@ -150,21 +152,17 @@ fn setupcache(version: &str) {
         relver = "unstable".to_string();
     }
 
-    let mut dlver = version.to_string();
-    let v = version.split(".").collect::<Vec<&str>>();
-    if v.len() == 4 {
-        if v[3].len() == 7 {
-            println!("Detected system using flakes: finding proper nixos version");
-            let vout = Command::new("nix-instantiate")
-                .arg("-E")
-                .arg("with import <nixpkgs/lib>; version")
-                .arg("--eval")
-                .arg("--json")
-                .output()
-                .unwrap();
-            dlver = String::from_utf8_lossy(&vout.stdout).to_string().replace("\"", ""); 
-        }
-    }
+    let vout = Command::new("nix-instantiate")
+        .arg("<nixpkgs/lib>")
+        .arg("-A")
+        .arg("version")
+        .arg("--eval")
+        .arg("--json")
+        .output()
+        .unwrap();
+    let dlver = String::from_utf8_lossy(&vout.stdout)
+        .to_string()
+        .replace("\"", "");
 
     let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
     fs::create_dir_all(&cachedir).expect("Failed to create cache directory");
@@ -238,6 +236,7 @@ fn updatepnameref() {
     };
     let mut outfile = File::create(format!("{}/pnameref.json", &cachedir).as_str())
         .expect("Failed to create file");
-    outfile.write_all(out.as_bytes())
+    outfile
+        .write_all(out.as_bytes())
         .expect("Failed to write file");
 }

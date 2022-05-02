@@ -270,9 +270,6 @@ fn cfgoperate(mut opts: NpkgData, action: Actions) -> Result<(), OperateError> {
                         }
                     }
                 };
-
-
-                //fs::write(&outfile, f).expect("Unable to write file");
                 return Err(e);
             }
         }
@@ -294,9 +291,9 @@ pub fn cfgswitch(opts: &NpkgData) -> Result<(), OperateError> {
         None => match &opts.pkgmgr {
             crate::PackageTypes::System => {
                 println!("{}", "Need root access to rebuild system".bright_magenta());
-                Command::new("sudo")
-                    .arg(&cmd)
+                Command::new(&cmd)
                     .arg("switch")
+                    .arg("--use-remote-sudo")
                     .status()
                     .expect(&format!("Failed to run {}", &cmd))
             }
@@ -310,11 +307,11 @@ pub fn cfgswitch(opts: &NpkgData) -> Result<(), OperateError> {
             match &opts.pkgmgr {
                 crate::PackageTypes::System => {
                     println!("{}", "Need root access to rebuild system".bright_magenta());
-                    Command::new("sudo")
-                        .arg(&cmd)
+                    Command::new(&cmd)
                         .arg("switch")
                         .arg("--flake")
                         .arg(s)
+                        .arg("--use-remote-sudo")
                         .status()
                         .expect(&format!("Failed to run {}", &cmd))
                 }
