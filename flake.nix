@@ -35,12 +35,14 @@
             inherit name;
             drv = packages.${name};
           };
-          defaultApp = apps.${name};
+          defaultApp = packages.${name};
 
           # `nix develop`
-          devShell = pkgs.mkShell {
-            nativeBuildInputs = 
-              with pkgs; [ rustc cargo openssl pkgconfig ] ;
+          devShells = {
+            default = pkgs.mkShell {
+              nativeBuildInputs = 
+                with pkgs; [ rustc cargo openssl pkgconfig ] ;
+            };
           };
         }
       );
