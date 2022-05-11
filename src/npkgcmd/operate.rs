@@ -1,9 +1,10 @@
-use crate::{search::pname_to_name, NpkgData};
+use crate::npkgcmd::{search::pname_to_name, NpkgData};
+use npkg::*;
 use owo_colors::*;
 use std::{
-    fs,
+    env, fs,
     path::Path,
-    process::{exit, Command}, env,
+    process::{exit, Command},
 };
 
 pub enum OperateError {
@@ -32,10 +33,7 @@ pub fn pkremove(opts: NpkgData) -> Result<(), OperateError> {
 
 pub fn chnupdate(opts: &NpkgData) {
     println!("{}", "Updating channels...".green());
-    let _userchannel = Command::new("nix-channel")
-        .arg("--update")
-        .status()
-        .expect("Failed to execute process nix-channel");
+    updatechannel().expect_err("Failed to execute process nix-channel");
     println!(
         "{}",
         "Need root access to update system channels".bright_magenta()
@@ -47,27 +45,16 @@ pub fn chnupdate(opts: &NpkgData) {
         .expect("Failed to execute process nix-channel");
     if opts.flake.is_some() {
         println!("{}", "Updating flake...".green());
-        let _flakechannel = Command::new("nix")
-            .arg("flake")
-            .arg("update")
-            .arg(
-                opts.flake
-                    .as_ref()
-                    .unwrap()
-                    .split("#")
-                    .collect::<Vec<&str>>()[0],
-            )
-            .status()
-            .expect("Failed to execute process nix flake");
+        updateflake(opts.flake.as_ref().unwrap()).expect_err("Failed to execute process nix flake");
     }
 }
 
-pub fn envinstall(opts: NpkgData) -> Result<(), OperateError> {
+pub fn envinstall_check(opts: NpkgData) -> Result<(), OperateError> {
     let mut pkgs = vec![];
 
     for p in opts.pkgs {
         if !opts.currpkgs.contains(&p) {
-            pkgs.push(format!("nixos.{}", p));
+            pkgs.push(p);
         }
     }
 
@@ -76,13 +63,14 @@ pub fn envinstall(opts: NpkgData) -> Result<(), OperateError> {
         exit(0);
     }
 
-    match Command::new("nix-env").arg("-iA").args(pkgs).status() {
-        Ok(_) => Ok(()),
-        Err(_) => Err(OperateError::CmdError),
+    match envinstall(pkgs) {
+        Ok(()) => Ok(()),
+        Err(ExecuteError::WriteError(e)) => Err(OperateError::WriteError(e)),
+        Err(ExecuteError::CmdError) => Err(OperateError::CmdError),
     }
 }
 
-pub fn envremove(opts: NpkgData) -> Result<(), OperateError> {
+pub fn envremove_check(opts: NpkgData) -> Result<(), OperateError> {
     let mut pkgs = vec![];
 
     for p in opts.pkgs {
@@ -95,19 +83,12 @@ pub fn envremove(opts: NpkgData) -> Result<(), OperateError> {
         println!("No packages to remove");
         exit(0);
     }
-
     pkgs = pname_to_name(&pkgs);
 
-    match Command::new("nix-env").arg("-e").args(pkgs).status() {
-        Ok(_) => Ok(()),
-        Err(_) => Err(OperateError::CmdError),
-    }
-}
-
-pub fn envupdate() -> Result<(), OperateError> {
-    match Command::new("nix-env").arg("-u").arg("*").status() {
-        Ok(_) => Ok(()),
-        Err(_) => Err(OperateError::CmdError),
+    match envremove(pkgs) {
+        Ok(()) => Ok(()),
+        Err(ExecuteError::WriteError(e)) => Err(OperateError::WriteError(e)),
+        Err(ExecuteError::CmdError) => Err(OperateError::CmdError),
     }
 }
 
@@ -120,8 +101,10 @@ fn cfgoperate(mut opts: NpkgData, action: Actions) -> Result<(), OperateError> {
     };
 
     let f = match opts.pkgmgr {
-        crate::PackageTypes::Home => fs::read_to_string(&opts.hmcfg).expect("Failed to read file"),
-        crate::PackageTypes::System => {
+        crate::npkgcmd::PackageTypes::Home => {
+            fs::read_to_string(&opts.hmcfg).expect("Failed to read file")
+        }
+        crate::npkgcmd::PackageTypes::System => {
             fs::read_to_string(&opts.syscfg).expect("Failed to read file")
         }
         _ => {
@@ -153,32 +136,20 @@ fn cfgoperate(mut opts: NpkgData, action: Actions) -> Result<(), OperateError> {
     }
 
     let query = match opts.pkgmgr {
-        crate::PackageTypes::Home => "home.packages",
-        crate::PackageTypes::System => "environment.systemPackages",
+        crate::npkgcmd::PackageTypes::Home => "home.packages",
+        crate::npkgcmd::PackageTypes::System => "environment.systemPackages",
         _ => {
             println!("{}", "Unsupported package type".red());
             exit(1);
         }
     };
 
-    let pkgsset = match nix_editor::read::getwithvalue(&f, query) {
-        Ok(s) => s.contains(&"pkgs".to_string()),
-        Err(_) => false,
-    };
-
-    if !pkgsset {
-        pkgs = pkgs
-            .into_iter()
-            .map(|x| format!("pkgs.{}", x))
-            .collect::<Vec<String>>();
-    }
-
     let out = match action {
-        Actions::Install => match nix_editor::write::addtoarr(&f, query, pkgs) {
+        Actions::Install => match pkwrite(pkgs, &f, Some(query)) {
             Ok(x) => x,
             Err(_) => exit(1),
         },
-        Actions::Remove => match nix_editor::write::rmarr(&f, query, pkgs) {
+        Actions::Remove => match pkrm(pkgs, &f, Some(query)) {
             Ok(x) => x,
             Err(_) => exit(1),
         },
@@ -187,8 +158,8 @@ fn cfgoperate(mut opts: NpkgData, action: Actions) -> Result<(), OperateError> {
     let outfile = match opts.output {
         Some(ref s) => s.to_string(),
         None => match opts.pkgmgr {
-            crate::PackageTypes::Home => opts.hmcfg.to_string(),
-            crate::PackageTypes::System => opts.syscfg.to_string(),
+            crate::npkgcmd::PackageTypes::Home => opts.hmcfg.to_string(),
+            crate::npkgcmd::PackageTypes::System => opts.syscfg.to_string(),
             _ => {
                 println!("{}", "Unsupported package type".red());
                 exit(1);
@@ -200,8 +171,11 @@ fn cfgoperate(mut opts: NpkgData, action: Actions) -> Result<(), OperateError> {
         Ok(_) => {}
         Err(_) => {
             if Path::new(&outfile).is_file() {
-
-                println!("{} {}", "Root permissions needed to modify".bright_yellow(), &outfile.green());
+                println!(
+                    "{} {}",
+                    "Root permissions needed to modify".bright_yellow(),
+                    &outfile.green()
+                );
 
                 let file = outfile.split("/").collect::<Vec<&str>>().pop().unwrap();
                 let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
@@ -215,7 +189,8 @@ fn cfgoperate(mut opts: NpkgData, action: Actions) -> Result<(), OperateError> {
                             .arg(&outfile)
                             .status()
                             .expect(&format!("{}", "Failed to execute process sudo cp".red()));
-                        fs::remove_file(format!("{}/{}", cachedir, file)).expect("Failed to remove file");
+                        fs::remove_file(format!("{}/{}", cachedir, file))
+                            .expect("Failed to remove file");
                     }
                     Err(_) => {
                         let mut dir = outfile.split("/").collect::<Vec<&str>>();
@@ -240,13 +215,17 @@ fn cfgoperate(mut opts: NpkgData, action: Actions) -> Result<(), OperateError> {
                     Ok(_) => {}
                     Err(_) => {
                         if Path::new(&outfile).is_file() {
-                            
-                            println!("{} {}", "Root permissions needed to restore".bright_yellow(), &outfile.green());
-            
+                            println!(
+                                "{} {}",
+                                "Root permissions needed to restore".bright_yellow(),
+                                &outfile.green()
+                            );
+
                             let file = outfile.split("/").collect::<Vec<&str>>().pop().unwrap();
                             let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
-                            fs::create_dir_all(&cachedir).expect("Failed to create cache directory");
-            
+                            fs::create_dir_all(&cachedir)
+                                .expect("Failed to create cache directory");
+
                             match fs::write(format!("{}/{}", cachedir, file), &f) {
                                 Ok(_) => {
                                     Command::new("sudo")
@@ -254,8 +233,12 @@ fn cfgoperate(mut opts: NpkgData, action: Actions) -> Result<(), OperateError> {
                                         .arg(format!("{}/{}", cachedir, file))
                                         .arg(&outfile)
                                         .status()
-                                        .expect(&format!("{}", "Failed to execute process sudo cp".red()));
-                                    fs::remove_file(format!("{}/{}", cachedir, file)).expect("Failed to remove file");
+                                        .expect(&format!(
+                                            "{}",
+                                            "Failed to execute process sudo cp".red()
+                                        ));
+                                    fs::remove_file(format!("{}/{}", cachedir, file))
+                                        .expect("Failed to remove file");
                                 }
                                 Err(_) => {
                                     let mut dir = outfile.split("/").collect::<Vec<&str>>();
@@ -279,55 +262,43 @@ fn cfgoperate(mut opts: NpkgData, action: Actions) -> Result<(), OperateError> {
 
 pub fn cfgswitch(opts: &NpkgData) -> Result<(), OperateError> {
     let cmd = match opts.pkgmgr {
-        crate::PackageTypes::Home => "home-manager".to_string(),
-        crate::PackageTypes::System => "nixos-rebuild".to_string(),
+        crate::npkgcmd::PackageTypes::Home => "home-manager".to_string(),
+        crate::npkgcmd::PackageTypes::System => "nixos-rebuild".to_string(),
         _ => {
             println!("{}", "Unsupported package type".red());
             exit(1);
         }
     };
 
-    let status = match &opts.flake {
+    match &opts.flake {
         None => match &opts.pkgmgr {
-            crate::PackageTypes::System => {
+            crate::npkgcmd::PackageTypes::System => {
                 println!("{}", "Need root access to rebuild system".bright_magenta());
-                Command::new(&cmd)
-                    .arg("switch")
-                    .arg("--use-remote-sudo")
-                    .status()
-                    .expect(&format!("Failed to run {}", &cmd))
+                match systemswitch() {
+                    Ok(()) => Ok(()),
+                    Err(_) => Err(OperateError::CmdError),
+                }
             }
-            _ => Command::new(&cmd)
-                .arg("switch")
-                .status()
-                .expect(&format!("Failed to run {}", &cmd)),
+            _ => match homeswitch() {
+                Ok(()) => Ok(()),
+                Err(_) => Err(OperateError::CmdError),
+            },
         },
         Some(s) => {
             println!("Rebuilding with nix flakes");
             match &opts.pkgmgr {
-                crate::PackageTypes::System => {
+                crate::npkgcmd::PackageTypes::System => {
                     println!("{}", "Need root access to rebuild system".bright_magenta());
-                    Command::new(&cmd)
-                        .arg("switch")
-                        .arg("--flake")
-                        .arg(s)
-                        .arg("--use-remote-sudo")
-                        .status()
-                        .expect(&format!("Failed to run {}", &cmd))
+                    match systemflakeswitch(s) {
+                        Ok(()) => Ok(()),
+                        Err(_) => Err(OperateError::CmdError),
+                    }
                 }
-                _ => Command::new(&cmd)
-                    .arg("switch")
-                    .arg("--flake")
-                    .arg(s)
-                    .status()
-                    .expect(&format!("Failed to run {}", &cmd)),
+                _ => match homeflakeswitch(s) {
+                    Ok(()) => Ok(()),
+                    Err(_) => Err(OperateError::CmdError),
+                },
             }
         }
-    };
-
-    if !status.success() {
-        return Err(OperateError::CmdError);
     }
-
-    Ok(())
 }

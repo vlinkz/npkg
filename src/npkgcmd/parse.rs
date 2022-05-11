@@ -1,4 +1,4 @@
-use crate::search::name_to_pname;
+use crate::npkgcmd::search::name_to_pname;
 use serde_json::{self, Value};
 use std::{fs, process::Command};
 pub enum ParseError {

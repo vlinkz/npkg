@@ -5,7 +5,7 @@ Npkg
 
 Npkg is a small tool that allows you to configure all your NixOS packages in one place.
 
-Npkg is written with rust and uses [nix-editor](https://github.com/vlinkz/nix-editor) and [rnix-parser](https://github.com/nix-community/rnix-parser) to parse configuration files.
+Npkg is written with rust and uses [nix-editor](https://github.com/vlinkz/nix-editor) and [rnix-parser](https://github.com/nix-community/rnix-parser) to parse and edit configuration files.
 
 # WARNING
 
