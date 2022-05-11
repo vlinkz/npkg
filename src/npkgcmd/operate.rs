@@ -33,7 +33,13 @@ pub fn pkremove(opts: NpkgData) -> Result<(), OperateError> {
 
 pub fn chnupdate(opts: &NpkgData) {
     println!("{}", "Updating channels...".green());
-    updatechannel().expect_err("Failed to execute process nix-channel");
+    match updatechannel() {
+        Ok(()) => {}
+        Err(_) => {
+            println!("{}", "Failed to execute process nix-channel".red());
+            exit(1);
+        }
+    }
     println!(
         "{}",
         "Need root access to update system channels".bright_magenta()
@@ -45,7 +51,13 @@ pub fn chnupdate(opts: &NpkgData) {
         .expect("Failed to execute process nix-channel");
     if opts.flake.is_some() {
         println!("{}", "Updating flake...".green());
-        updateflake(opts.flake.as_ref().unwrap()).expect_err("Failed to execute process nix flake");
+        match updateflake(opts.flake.as_ref().unwrap()) {
+            Ok(()) => {}
+            Err(_) => {
+                println!("{}", "Failed to execute process nix flake".red());
+                exit(1);
+            }
+        }
     }
 }
 
