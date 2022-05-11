@@ -1,4 +1,4 @@
-use crate::PkgData;
+use crate::npkgcmd::PkgData;
 use bimap;
 use brotli;
 use curl::easy::Easy;
