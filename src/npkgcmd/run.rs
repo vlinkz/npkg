@@ -1,9 +1,10 @@
-use clap::{self, ArgGroup, Parser};
 use crate::npkgcmd::NpkgData;
+use clap::{self, ArgGroup, Parser};
 //use npkg::NpkgData;
-use crate::npkgcmd::PackageTypes::*;
 use crate::npkgcmd::npkg;
+use crate::npkgcmd::PackageTypes::*;
 use owo_colors::*;
+use std::ops::IndexMut;
 use std::process::exit;
 
 #[derive(Parser)]
@@ -393,19 +394,42 @@ pub fn main() {
 
         for pkg in pkgdata {
             let mut name = pkg.pname.to_string();
-            for st in &opts.pkgs {
-                let nl = name.to_lowercase();
-                let sl = st.to_lowercase();
-                let y = nl.match_indices(&sl);
-                let mut offset = 0;
-                for (i, _) in y {
-                    let j = i + offset;
-                    let n = name[j..j + st.len()].to_string();
-                    name.replace_range(j..j + st.len(), &n.green().to_string());
-                    offset += 10;
-                }
 
-                name = name.replace(st.as_str(), &st.green().to_string());
+            let mut idx = vec![];
+            let nl = name.to_lowercase();
+            for st in &opts.pkgs {
+                let sl = st.to_lowercase();
+                let mut y = nl.match_indices(&sl).collect::<Vec<_>>();
+                idx.append(&mut y);
+            }
+            idx.sort();
+            let mut idx2: Vec<(usize, &str)> = vec![];
+            for i in idx {
+                if {
+                    let mut b = true;
+                    idx2.retain(|j| {
+                        if j.0 == i.0 {
+                            if i.1.len() > j.1.len() {
+                                return false;
+                            } else {
+                                b = false;
+                                return true;
+                            }
+                        }
+                        return true;
+                    });
+                    b
+                } {
+                    idx2.push(i);
+                }
+            }
+            let mut offset = 0;
+
+            for (i, st) in idx2 {
+                let j = i + offset;
+                let n = name[j..j + st.len()].to_string();
+                name.replace_range(j..j + st.len(), &n.green().to_string());
+                offset += 10;
             }
             let mut outstr = format!("* {} ({})", name.bold(), pkg.version);
             if syslst.contains(&pkg.pname) {
@@ -418,20 +442,44 @@ pub fn main() {
                 outstr += &format!(" ({})", "nix env".bright_yellow());
             }
             println!("{}", outstr);
+
             match pkg.description {
                 Some(x) => {
                     let mut desc = x.trim().replace("\n", " ");
+                    let mut idx = vec![];
+                    let dl = desc.to_lowercase();
                     for st in &opts.pkgs {
-                        let dl = desc.to_lowercase();
                         let sl = st.to_lowercase();
-                        let y = dl.match_indices(&sl);
-                        let mut offset = 0;
-                        for (i, _) in y {
-                            let j = i + offset;
-                            let d = desc[j..j + st.len()].to_string();
-                            desc.replace_range(j..j + st.len(), &d.green().to_string());
-                            offset += 10;
+                        let mut y = dl.match_indices(&sl).collect::<Vec<_>>();
+                        idx.append(&mut y);
+                    }
+                    idx.sort();
+                    let mut idx2: Vec<(usize, &str)> = vec![];
+                    for i in idx {
+                        if {
+                            let mut b = true;
+                            idx2.retain(|j| {
+                                if j.0 == i.0 {
+                                    if i.1.len() > j.1.len() {
+                                        return false;
+                                    } else {
+                                        b = false;
+                                        return true;
+                                    }
+                                }
+                                return true;
+                            });
+                            b
+                        } {
+                            idx2.push(i);
                         }
+                    }
+                    let mut offset = 0;
+                    for (i, st) in idx2 {
+                        let j = i + offset;
+                        let d = desc[j..j + st.len()].to_string();
+                        desc.replace_range(j..j + st.len(), &d.green().to_string());
+                        offset += 10;
                     }
                     println!("  {}", desc)
                 }
