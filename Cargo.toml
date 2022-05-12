@@ -2,6 +2,16 @@
 name = "npkg"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Some functions to manage and install packages on NixOS"
+repository = "https://github.com/vlinkz/npkg/"
+readme = "README.md"
+include = [
+  "src/*",
+  "Cargo.toml",
+  "LICENSE*",
+  "README.md",
+]
 
 [dependencies]
 nix-editor = "0.2.8"
