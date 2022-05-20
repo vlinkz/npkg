@@ -273,7 +273,7 @@ fn cfgoperate(mut opts: NpkgData, action: Actions) -> Result<(), OperateError> {
 }
 
 pub fn cfgswitch(opts: &NpkgData) -> Result<(), OperateError> {
-    let cmd = match opts.pkgmgr {
+    match opts.pkgmgr {
         crate::npkgcmd::PackageTypes::Home => "home-manager".to_string(),
         crate::npkgcmd::PackageTypes::System => "nixos-rebuild".to_string(),
         _ => {
