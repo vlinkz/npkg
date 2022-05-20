@@ -1,4 +1,3 @@
-use nix_editor;
 use std::process::{exit, Command};
 
 pub enum ExecuteError {
@@ -17,7 +16,7 @@ pub fn envinstall(pkgs: Vec<String>) -> Result<(), ExecuteError> {
     for p in &pkgs {
         prefixpkgs.push(format!("nixos.{}", p));
     }
-    match Command::new("nix-env").arg("-iA").args(pkgs).status() {
+    match Command::new("nix-env").arg("-iA").args(prefixpkgs).status() {
         Ok(_) => Ok(()),
         Err(_) => Err(ExecuteError::CmdError),
     }
@@ -42,7 +41,7 @@ pub fn envupdate() -> Result<(), ExecuteError> {
 }
 
 /// Adds packages to a nix configuration file
-/// 
+///
 /// Package specified are added to the configuration file text in `f`.
 /// The configuration text with the added package is returned.
 /// By default the field modified is `environment.systemPackages`, but can be changed if `query` is specified.
@@ -53,7 +52,7 @@ pub fn pkwrite(
 ) -> Result<String, ExecuteError> {
     let q;
     (pkgs, q) = pkwith(pkgs, f, query);
-    let out = match nix_editor::write::addtoarr(&f, &q, pkgs) {
+    let out = match nix_editor::write::addtoarr(f, &q, pkgs) {
         Ok(x) => x,
         Err(_) => exit(1),
     };
@@ -62,14 +61,14 @@ pub fn pkwrite(
 }
 
 /// Removes packages from a nix configuration file
-/// 
+///
 /// Package specified are removed from the configuration text in `f`.
 /// The configuration text with the removed package is returned.
 /// By default the field modified is `environment.systemPackages`, but can be changed if `query` is specified.
 pub fn pkrm(mut pkgs: Vec<String>, f: &str, query: Option<&str>) -> Result<String, ExecuteError> {
     let q;
     (pkgs, q) = pkwith(pkgs, f, query);
-    let out = match nix_editor::write::rmarr(&f, &q, pkgs) {
+    let out = match nix_editor::write::rmarr(f, &q, pkgs) {
         Ok(x) => x,
         Err(_) => exit(1),
     };
@@ -78,34 +77,30 @@ pub fn pkrm(mut pkgs: Vec<String>, f: &str, query: Option<&str>) -> Result<Strin
 }
 
 fn pkwith(mut pkgs: Vec<String>, f: &str, query: Option<&str>) -> (Vec<String>, String) {
-    let q = match query {
-        Some(q) => q,
-        None => "environment.systemPackages",
-    };
-    match nix_editor::read::getwithvalue(&f, &q) {
-        Ok(s) => {
-            if !s.contains(&"pkgs".to_string()) {
-                pkgs = pkgs
-                    .into_iter()
-                    .map(|x| format!("pkgs.{}", x))
-                    .collect::<Vec<String>>();
-            }
+    let q = query.unwrap_or("environment.systemPackages");
+
+    if let Ok(s) = nix_editor::read::getwithvalue(f, q) {
+        if !s.contains(&"pkgs".to_string()) {
+            pkgs = pkgs
+                .into_iter()
+                .map(|x| format!("pkgs.{}", x))
+                .collect::<Vec<String>>();
         }
-        Err(_) => {}
     }
-    return (pkgs, q.to_string());
+
+    (pkgs, q.to_string())
 }
 
 /// Calls `nixos-rebuild switch`
 pub fn systemswitch() -> Result<(), ExecuteError> {
-    match Command::new("nixos-rebuild").arg("switch").status()  {
+    match Command::new("nixos-rebuild").arg("switch").status() {
         Ok(_) => Ok(()),
         Err(_) => Err(ExecuteError::CmdError),
     }
 }
 
 /// Calls `nixos-rebuild switch` with the `--flake` flag
-/// 
+///
 /// The input `flakepath` is the path to the flake file with any arguments.
 /// Eg `/etc/nixos#user`.
 pub fn systemflakeswitch(flakepath: &str) -> Result<(), ExecuteError> {
@@ -131,7 +126,7 @@ pub fn homeswitch() -> Result<(), ExecuteError> {
 }
 
 /// Calls `home-manager switch` with the `--flake` flag
-/// 
+///
 /// The input `flakepath` is the path to the flake file with any arguments.
 /// Eg `/home/user/nix#user`.
 pub fn homeflakeswitch(flakepath: &str) -> Result<(), ExecuteError> {
@@ -150,21 +145,21 @@ pub fn homeflakeswitch(flakepath: &str) -> Result<(), ExecuteError> {
 pub fn updatechannel() -> Result<(), ExecuteError> {
     match Command::new("nix-channel").arg("--update").status() {
         Ok(_) => Ok(()),
-        Err(_) => return Err(ExecuteError::CmdError),
+        Err(_) => Err(ExecuteError::CmdError),
     }
 }
 
 /// Calls `nix flake update` on the specified flake
-/// 
+///
 /// The input `flake` is the path to the flake file.
 pub fn updateflake(flake: &str) -> Result<(), ExecuteError> {
     match Command::new("nix")
         .arg("flake")
         .arg("update")
-        .arg(flake.split("#").collect::<Vec<&str>>()[0])
+        .arg(flake.split('#').collect::<Vec<&str>>()[0])
         .status()
     {
         Ok(_) => Ok(()),
-        Err(_) => return Err(ExecuteError::CmdError),
+        Err(_) => Err(ExecuteError::CmdError),
     }
 }
