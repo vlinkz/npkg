@@ -93,7 +93,11 @@ fn pkwith(mut pkgs: Vec<String>, f: &str, query: Option<&str>) -> (Vec<String>, 
 
 /// Calls `nixos-rebuild switch`
 pub fn systemswitch() -> Result<(), ExecuteError> {
-    match Command::new("nixos-rebuild").arg("switch").status() {
+    match Command::new("nixos-rebuild")
+        .arg("switch")
+        .arg("--use-remote-sudo")
+        .status()
+    {
         Ok(_) => Ok(()),
         Err(_) => Err(ExecuteError::CmdError),
     }
