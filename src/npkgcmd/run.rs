@@ -4,7 +4,6 @@ use clap::{self, ArgGroup, Parser};
 use crate::npkgcmd::npkg;
 use crate::npkgcmd::PackageTypes::*;
 use owo_colors::*;
-use std::ops::IndexMut;
 use std::process::exit;
 
 #[derive(Parser)]
