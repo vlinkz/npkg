@@ -148,7 +148,7 @@ fn checkcache() {
 
 fn setupcache(version: &str) {
     let mut relver = version.split(".").collect::<Vec<&str>>()[0..2].join(".");
-    if &relver[0..5] == "22.05" {
+    if &relver[0..5] == "22.11" {
         relver = "unstable".to_string();
     }
 
