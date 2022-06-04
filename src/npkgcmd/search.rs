@@ -118,7 +118,7 @@ fn checkcache() {
         || !Path::is_file(Path::new(&format!("{}/version.json", &cachedir)))
     {
         println!("Updating cache");
-        setupcache(version);
+        setupcache();
         let mut newver = fs::File::create(format!("{}/version.json", &cachedir)).unwrap();
         newver.write_all(&vout.stdout).unwrap();
     }
@@ -132,12 +132,12 @@ fn checkcache() {
 
     if version != oldversion {
         println!("Out of date, updating cache");
-        setupcache(version);
+        setupcache();
         let mut newver = fs::File::create(format!("{}/version.json", &cachedir)).unwrap();
         newver.write_all(&vout.stdout).unwrap();
     } else if !Path::is_file(Path::new(&format!("{}/packages.json", &cachedir))) {
         println!("No packages.json, updating cache");
-        setupcache(version);
+        setupcache();
         let mut newver = fs::File::create(format!("{}/version.json", &cachedir)).unwrap();
         newver.write_all(&vout.stdout).unwrap();
     } else if !Path::is_file(Path::new(&format!("{}/pnameref.json", &cachedir))) {
@@ -146,12 +146,7 @@ fn checkcache() {
     }
 }
 
-fn setupcache(version: &str) {
-    let mut relver = version.split(".").collect::<Vec<&str>>()[0..2].join(".");
-    if &relver[0..5] == "22.11" {
-        relver = "unstable".to_string();
-    }
-
+fn setupcache() {
     let vout = Command::new("nix-instantiate")
         .arg("<nixpkgs/lib>")
         .arg("-A")
@@ -160,9 +155,16 @@ fn setupcache(version: &str) {
         .arg("--json")
         .output()
         .unwrap();
+    
     let dlver = String::from_utf8_lossy(&vout.stdout)
         .to_string()
-        .replace("\"", "");
+        .replace('"', "");
+
+    let mut relver = dlver.split('.').collect::<Vec<&str>>().join(".")[0..5].to_string();
+    
+    if dlver.len() >= 8 && &dlver[5..8] == "pre" {
+        relver = "unstable".to_string();
+    }
 
     let cachedir = format!("{}/.cache/npkg", env::var("HOME").unwrap());
     fs::create_dir_all(&cachedir).expect("Failed to create cache directory");
