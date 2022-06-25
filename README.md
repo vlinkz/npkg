@@ -26,6 +26,35 @@ Then modify `~/npkg/config.json` to match your configuration.
 nix run github:vlinkz/npkg -- --help
 ```
 
+# Declarative System Installation
+
+### Head of `configuration.nix`
+
+```
+{ config, pkgs, lib, ... }:
+
+let
+  npkg = (import (pkgs.fetchFromGitHub {
+    owner = "vlinkz";
+    repo = "npkg";
+    rev = "0.1.2";
+    sha256 = "0000000000000000000000000000000000000000000000000000";
+  })).default;
+in 
+{
+  imports =
+# rest of configuration
+```
+
+Packages:
+```
+environment.systemPackages =
+with pkgs; [
+  npkg
+  # rest of your packages
+];
+```
+
 # Arguments
 
 ```

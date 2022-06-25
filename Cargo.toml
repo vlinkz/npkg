@@ -1,6 +1,6 @@
 [package]
 name = "npkg"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 description = "Some functions to manage and install packages on NixOS"
@@ -14,11 +14,11 @@ include = [
 ]
 
 [dependencies]
-nix-editor = "0.2.8"
-clap =  { version = "3.1.17", features = ["derive"] }
+nix-editor = "0.2.11"
+clap =  { version = "3.2.6", features = ["derive"] }
 owo-colors = "3.4.0"
-serde_json = "1.0.81"
-serde = { version = "1.0.137", features = ["derive"] }
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
 bimap = { version = "0.6.2", features = ["serde"] }
 brotli = "3.3.4"
 curl = "0.4.43"
